@@ -43,8 +43,6 @@ public class EmployerProfile {
     @Size(max = 10000, message = "Self-description must be under 10,000 characters.")
     private String selfDescription;
 
-    private String currentPosition;
-
     private Boolean openToHire;
     private Boolean premiumStatus;
 
