@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 
+
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -15,6 +16,7 @@ import jakarta.servlet.http.HttpServletResponse;
 public class FreelancerOAuth2LoginFailureHandler implements AuthenticationFailureHandler{
     @Value("${frontend.url}")
     private String frontendURL;
+
 
     @Override
     public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException {

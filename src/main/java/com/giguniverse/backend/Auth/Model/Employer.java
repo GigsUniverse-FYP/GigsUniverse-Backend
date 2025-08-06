@@ -6,6 +6,8 @@ import lombok.Data;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
+import com.giguniverse.backend.Profile.Model.EmployerProfile;
+
 @Data 
 @NoArgsConstructor
 @AllArgsConstructor 
@@ -47,9 +49,6 @@ public class Employer {
     // check user online status
     private boolean onlineStatus = false;
 
-    // check user profile completion
-    private boolean completedProfile = false;
-
     // for banning information
     private boolean accountBannedStatus = false;
     private String bannedReason;
@@ -58,4 +57,17 @@ public class Employer {
     // Reset Password Token
     private String resetPasswordToken;
     private LocalDateTime resetPasswordTokenExpiry;
+
+    // Onboarding Information
+    private boolean completedOnboarding= false;
+    private boolean completedProfile = false;
+    
+    private boolean completedIdentity = false;
+    @Column(unique = true)
+    private String sumsubApplicantId;
+    @Enumerated(EnumType.STRING)
+    private SumsubStatus sumsubStatus;
+
+    @OneToOne(mappedBy = "employer", cascade = CascadeType.ALL)
+    private EmployerProfile profile;
 }

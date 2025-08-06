@@ -179,10 +179,11 @@ public class EmployerAuthController {
             // Create secure HTTP-only cookie for JWT
             ResponseCookie cookie = ResponseCookie.from("jwt", jwt)
                     .httpOnly(true)
-                    .secure(false) // Set to 'false' if testing over HTTP (not HTTPS)
+                    .secure(true) // Set to 'false' if testing over HTTP (not HTTPS)
                     .path("/")
                     .maxAge(Duration.ofMillis(jwtConfig.getExpiration()))
-                    .sameSite("Strict")
+                    .sameSite("None")
+                    .domain(".gigsuniverse.studio")
                     .build();
 
             return ResponseEntity.ok()
@@ -192,6 +193,22 @@ public class EmployerAuthController {
         } catch (Exception e) {
             e.printStackTrace(); 
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Login failed.");
+        }
+    }
+
+    @GetMapping("/check-registration-status")
+    public ResponseEntity<String> checkRegistrationStatus(@RequestParam String email) {
+        String status = authService.checkAccountRegistrationStatus(email);
+
+        switch (status) {
+            case "email_confirmed":
+                return ResponseEntity.ok("Email is confirmed.");
+            case "email_not_confirmed":
+                return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body("Email is not confirmed.");
+            default:
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No account found.");
         }
     }
 }

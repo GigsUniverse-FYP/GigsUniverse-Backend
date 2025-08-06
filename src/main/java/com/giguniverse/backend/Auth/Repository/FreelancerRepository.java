@@ -16,6 +16,11 @@ public interface FreelancerRepository extends JpaRepository<Freelancer, String> 
     boolean existsByFreelancerUserId(String freelancerUserId);
     Optional<Freelancer> findByEmail(String email);
     Optional<Freelancer> findByEmailConfirmationToken(String token);
+    Optional<Freelancer> findByFreelancerUserId(String freelancerUserId);
+    Optional<Freelancer> findByStripeAccountId(String stripeAccountId);
+
+    @Query("SELECT f.completedOnboarding FROM Freelancer f WHERE f.freelancerUserId = :freelancerUserId")
+    Optional<Boolean> isOnboarded(@Param("freelancerUserId") String freelancerUserId);
 
     // Check the provider based on the use email.
     @Query("SELECT f.registrationProvider FROM Freelancer f WHERE f.email = :email")

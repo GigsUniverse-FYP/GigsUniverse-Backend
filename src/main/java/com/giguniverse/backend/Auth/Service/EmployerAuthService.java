@@ -252,10 +252,29 @@ public class EmployerAuthService {
         Employer employer = optional.get();
         PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
         if (passwordEncoder.matches(rawPassword, employer.getPassword())) {
+            employer.setLastLoginDate(LocalDateTime.now());
+            employerRepo.save(employer);
             return jwtUtil.generateJwtToken(employer.getEmployerUserId(), employer.getEmail(), employer.getRole());
         } else {
             return null;
         }
     }
+
+    public String checkAccountRegistrationStatus(String email) {
+        Optional<Employer> employerOpt = employerRepo.findByEmail(email);
+
+        if (employerOpt.isEmpty()) {
+            return "not_found";
+        }
+
+        Employer employer = employerOpt.get();
+
+        if (Boolean.TRUE.equals(employer.isEmailConfirmed())) {
+            return "email_confirmed";
+        } else {
+            return "email_not_confirmed";
+        }
+    }
+    
 
 }

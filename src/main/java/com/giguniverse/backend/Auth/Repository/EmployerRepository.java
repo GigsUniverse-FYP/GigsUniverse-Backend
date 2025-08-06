@@ -10,12 +10,17 @@ import org.springframework.stereotype.Repository;
 
 import com.giguniverse.backend.Auth.Model.Employer;
 
+
 @Repository
 public interface EmployerRepository extends JpaRepository<Employer, String> {
     boolean existsByEmail(String email);
     boolean existsByEmployerUserId(String employerUserId);
     Optional<Employer> findByEmail(String email);
     Optional<Employer> findByEmailConfirmationToken(String token);
+    Optional<Employer> findByEmployerUserId(String employerUserId);
+
+    @Query("SELECT f.completedOnboarding FROM Employer f WHERE f.employerUserId = :employerUserId")
+    Optional<Boolean> isOnboarded(@Param("employerUserId") String employerUserId);
 
     @Query("SELECT f.registrationProvider FROM Employer f WHERE f.email = :email")
     Optional<String> findProviderByEmail(@Param("email") String email);

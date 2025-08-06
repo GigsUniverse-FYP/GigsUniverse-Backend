@@ -36,11 +36,50 @@ public class JwtUtil {
 
         return Jwts.builder()
             .setClaims(claims)
-            .setSubject(email)
+            .setSubject(userId)
             .setIssuedAt(issuedAt)
             .setExpiration(expiration)
             .signWith(key, SignatureAlgorithm.HS256)
             .compact();
     }
 
+    public boolean validateToken(String token) {
+        try {
+            SecretKey key = Keys.hmacShaKeyFor(jwtConfig.getSecret().getBytes());
+            Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public String getUserIdFromToken(String token) {
+        SecretKey key = Keys.hmacShaKeyFor(jwtConfig.getSecret().getBytes());
+        return (String) Jwts.parserBuilder()
+            .setSigningKey(key)
+            .build()
+            .parseClaimsJws(token)
+            .getBody()
+            .get("userId");
+    }
+
+    public String getEmailFromToken(String token) {
+        SecretKey key = Keys.hmacShaKeyFor(jwtConfig.getSecret().getBytes());
+        return (String) Jwts.parserBuilder()
+            .setSigningKey(key)
+            .build()
+            .parseClaimsJws(token)
+            .getBody()
+            .get("email");
+    }
+
+    public String getRoleFromToken(String token) {
+        SecretKey key = Keys.hmacShaKeyFor(jwtConfig.getSecret().getBytes());
+        return (String) Jwts.parserBuilder()
+            .setSigningKey(key)
+            .build()
+            .parseClaimsJws(token)
+            .getBody()
+            .get("role");
+    }
 }

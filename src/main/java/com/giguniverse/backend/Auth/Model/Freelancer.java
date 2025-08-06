@@ -6,6 +6,8 @@ import lombok.Data;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
+import com.giguniverse.backend.Profile.Model.FreelancerProfile;
+
 @Data 
 @NoArgsConstructor
 @AllArgsConstructor 
@@ -47,9 +49,6 @@ public class Freelancer {
     // check user online status
     private boolean onlineStatus = false;
 
-    // check user profile completion
-    private boolean completedProfile = false;
-
     // for banning information
     private boolean accountBannedStatus = false;
     private String bannedReason;
@@ -58,4 +57,29 @@ public class Freelancer {
     // Reset Password Token
     private String resetPasswordToken;
     private LocalDateTime resetPasswordTokenExpiry;
+
+
+    // Not Yet Done
+    private boolean completedOnboarding= false;
+
+    // done
+    private boolean completedProfile = false;
+    // done
+    private boolean completedIdentity = false;
+    @Column(unique = true)
+    private String sumsubApplicantId;
+    @Enumerated(EnumType.STRING)
+    private SumsubStatus sumsubStatus;
+
+    // doing
+    private boolean completedPaymentSetup = false;
+    private boolean payOutEnabled = false;
+    @Column(unique = true)
+    private String stripeAccountId;
+    @Enumerated(EnumType.STRING)
+    private StripeStatus stripeStatus;
+
+    // One to One Relationship with FreelancerProfile
+    @OneToOne(mappedBy = "freelancer", cascade = CascadeType.ALL)
+    private FreelancerProfile profile;
 }

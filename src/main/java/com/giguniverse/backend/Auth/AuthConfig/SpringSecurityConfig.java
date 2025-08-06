@@ -8,6 +8,7 @@ import com.giguniverse.backend.Auth.Service.EmployerOAuth2LoginSuccessHandler;
 import com.giguniverse.backend.Auth.Service.FreelancerOAuth2LoginFailureHandler;
 import com.giguniverse.backend.Auth.Service.FreelancerOAuth2LoginSuccessHandler;
 import com.giguniverse.backend.Auth.Service.CustomOAuth2EmployerHandler;
+import com.giguniverse.backend.Auth.JWT.JwtAuthenticationFilter;
 import com.giguniverse.backend.Auth.Service.CustomOAuth2EmployerFailureHandler;
 import com.giguniverse.backend.Auth.Service.CustomOAuth2EmployerService;
 
@@ -43,6 +44,11 @@ public class SpringSecurityConfig {
 
     @Autowired
     private CustomOAuth2EmployerService employerService;
+
+    // === JWT AUTHENTICATION FILTER ===
+    @Autowired
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
+
 
     // === FREELANCER REGISTRATION CHAIN ===
     @Bean
@@ -136,13 +142,20 @@ public class SpringSecurityConfig {
                     "/check/mongo",                
                     "/register/**", 
                     "/api/auth/**", 
-                    "/oauth2/**", 
+                    "/api/**",
+                    "/api/profile/**",
+                    "/api/sumsub/**",
+                    "/oauth2/**",
                     "/login/oauth2/code/**",
                     "/oauth2-init/**",
-                    "/error"
+                    "/error",
+                    "/ws/sumsub/**",
+                    "/ws/**",
+                    "/wss/**"
                 ).permitAll()
                 .anyRequest().authenticated()
-            );
+            )
+            .addFilterBefore(jwtAuthenticationFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

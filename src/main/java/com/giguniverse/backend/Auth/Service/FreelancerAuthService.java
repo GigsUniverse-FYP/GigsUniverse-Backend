@@ -252,11 +252,28 @@ public class FreelancerAuthService {
         Freelancer freelancer = optional.get();
         PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
         if (passwordEncoder.matches(rawPassword, freelancer.getPassword())) {
+            freelancer.setLastLoginDate(LocalDateTime.now());
+            freelancerRepo.save(freelancer);
             return jwtUtil.generateJwtToken(freelancer.getFreelancerUserId(), freelancer.getEmail(), freelancer.getRole());
         } else {
             return null;
         }
     }
 
+    public String checkAccountRegistrationStatus(String email) {
+        Optional<Freelancer> freelancerOpt = freelancerRepo.findByEmail(email);
+
+        if (freelancerOpt.isEmpty()) {
+            return "not_found";
+        }
+
+        Freelancer freelancer = freelancerOpt.get();
+
+        if (Boolean.TRUE.equals(freelancer.isEmailConfirmed())) {
+            return "email_confirmed";
+        } else {
+            return "email_not_confirmed";
+        }
+    }
     
 }

@@ -17,6 +17,8 @@ import com.giguniverse.backend.Auth.Model.Freelancer;
 import com.giguniverse.backend.Auth.Repository.FreelancerRepository;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
+
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -68,13 +70,14 @@ public class FreelancerOAuth2LoginSuccessHandler implements AuthenticationSucces
         // Set cookie
         ResponseCookie cookie = ResponseCookie.from("jwt", jwt)
             .httpOnly(true)
-            .secure(false) // Set to true in production (HTTPS)
+            .secure(true) // Set to true in production (HTTPS)
             .path("/")
             .maxAge(jwtConfig.getExpiration())
-            .sameSite("Lax")
+            .sameSite("None")
+            .domain(".gigsuniverse.studio") 
             .build();
 
-        response.setHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
         
         // Disposing server side JSESSION 
         HttpSession session = request.getSession(false);
@@ -88,11 +91,14 @@ public class FreelancerOAuth2LoginSuccessHandler implements AuthenticationSucces
             .maxAge(0)                      
             .httpOnly(true)                
             .sameSite("Lax")               
-            .secure(false)                 
+            .secure(false)          
             .build();
 
         response.addHeader(HttpHeaders.SET_COOKIE, jsessionClear.toString());
 
+        freelancer.setLastLoginDate(LocalDateTime.now());
+        freelancerRepo.save(freelancer);
+        
         // Redirect to dashboard
         response.sendRedirect(frontendURL + "/dashboard/freelancer");
     }

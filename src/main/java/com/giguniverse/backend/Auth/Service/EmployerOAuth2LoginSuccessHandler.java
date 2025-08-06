@@ -17,6 +17,8 @@ import com.giguniverse.backend.Auth.Model.Employer;
 import com.giguniverse.backend.Auth.Repository.EmployerRepository;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
+
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -68,10 +70,11 @@ public class EmployerOAuth2LoginSuccessHandler implements AuthenticationSuccessH
         // Set cookie
         ResponseCookie cookie = ResponseCookie.from("jwt", jwt)
             .httpOnly(true)
-            .secure(false) // Set to true in production (HTTPS)
+            .secure(true) // Set to true in production (HTTPS)
             .path("/")
             .maxAge(jwtConfig.getExpiration())
-            .sameSite("Lax")
+            .sameSite("None")  
+            .domain(".gigsuniverse.studio")    
             .build();
 
         response.setHeader(HttpHeaders.SET_COOKIE, cookie.toString());
@@ -82,7 +85,7 @@ public class EmployerOAuth2LoginSuccessHandler implements AuthenticationSuccessH
             .maxAge(0)                      
             .httpOnly(true)                
             .sameSite("Lax")               
-            .secure(false)                 
+            .secure(false)                   
             .build();
 
         response.addHeader(HttpHeaders.SET_COOKIE, jsessionClear.toString());
@@ -92,7 +95,9 @@ public class EmployerOAuth2LoginSuccessHandler implements AuthenticationSuccessH
             session.invalidate();
         }
 
-        // Redirect to dashboard
+        employer.setLastLoginDate(LocalDateTime.now());
+        employerRepo.save(employer);
+
         response.sendRedirect(frontendURL + "/dashboard/employer");
     }
 }
