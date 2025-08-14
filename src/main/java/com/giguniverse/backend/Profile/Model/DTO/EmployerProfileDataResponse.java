@@ -2,32 +2,38 @@ package com.giguniverse.backend.Profile.Model.DTO;
 
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-
 import lombok.Data;
 
 @Data
-@JsonIgnoreProperties(ignoreUnknown = true)
-public class EmployerProfileFormData {
+public class EmployerProfileDataResponse {
+    
+    // PostgreSQL Profile Fields
     private String employerProfileId;
     private String fullName;
     private String username;
     private String gender;
     private String dob;
+    private String email;
     private String phone;
+    private String profilePicture;
+    private String profilePictureMimeType; 
     private String location;
     private String selfDescription;
-    private String profilePictureMimeType;
-    private boolean openToHire;
+    private String languageProficiency;
+    private Boolean openToHire;
+    private Boolean premiumStatus;
 
-    private List<LanguageProficiency> languageProficiency;
+
+    // MongoDB Profile Fields
     private List<JobExperience> jobExperiences;
     private List<Education> educations;
-    
+    private List<CertificateFile> certificationFiles;
+
     @Data
-    public static class LanguageProficiency {
-        private String language;
-        private String proficiency;
+    public static class CertificateFile {
+        private String fileName;
+        private String base64Data;
+        private String contentType;
     }
     
     @Data

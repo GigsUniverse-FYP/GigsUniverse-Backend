@@ -2,7 +2,7 @@ package com.giguniverse.backend.Profile.Model;
 
 import java.time.LocalDate;
 
-import com.giguniverse.backend.Auth.Model.Employer;
+import com.giguniverse.backend.Auth.Model.Admin;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -12,19 +12,20 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
-import jakarta.validation.constraints.Size;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data 
 @NoArgsConstructor
 @AllArgsConstructor 
 @Entity
-@Table(name = "employer_profile")
-public class EmployerProfile {
+@Table(name = "admin_profile")
+public class AdminProfile {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int employerProfileId;
-
+    private int adminProfileId; 
+        
     private String fullName;
     private String username;
     private String gender; 
@@ -32,7 +33,7 @@ public class EmployerProfile {
     private LocalDate dob; 
     private String email;
     private String phone;
-    private String location; 
+    private String location;
 
     @Column(columnDefinition = "TEXT")
     private String languageProficiency;
@@ -41,16 +42,7 @@ public class EmployerProfile {
     private byte[] profilePicture;
     private String profilePictureMimeType;
 
-    @Size(max = 10000, message = "Self-description must be under 10,000 characters.")
-    private String selfDescription;
-
-    private Boolean openToHire;
-    
-    private Boolean premiumStatus;
-
-    private Integer availableCredits;
-
     @OneToOne
-    @JoinColumn(name = "employer_user_id", referencedColumnName = "employerUserId")
-    private Employer employer;
+    @JoinColumn(name = "admin_user_id", referencedColumnName = "adminUserId")
+    private Admin admin;
 }

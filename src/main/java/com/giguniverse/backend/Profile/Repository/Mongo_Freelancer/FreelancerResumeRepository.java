@@ -10,4 +10,5 @@ import com.giguniverse.backend.Profile.Model.Mongo_Freelancer.FreelancerResume;
 @Repository
 public interface FreelancerResumeRepository extends MongoRepository<FreelancerResume, String> {
     List<FreelancerResume> findByUserId(String userId);
+    void deleteByUserId(String userId);
 }

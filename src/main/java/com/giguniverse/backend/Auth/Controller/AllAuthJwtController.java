@@ -5,6 +5,13 @@ import com.giguniverse.backend.Auth.Model.Freelancer;
 import com.giguniverse.backend.Auth.Model.Employer;
 import com.giguniverse.backend.Auth.Model.Admin;
 import com.giguniverse.backend.Auth.Repository.FreelancerRepository;
+import com.giguniverse.backend.Auth.Session.AuthUtil;
+import com.giguniverse.backend.Profile.Model.AdminProfile;
+import com.giguniverse.backend.Profile.Model.EmployerProfile;
+import com.giguniverse.backend.Profile.Model.FreelancerProfile;
+import com.giguniverse.backend.Profile.Repository.AdminProfileRepository;
+import com.giguniverse.backend.Profile.Repository.EmployerProfileRepository;
+import com.giguniverse.backend.Profile.Repository.FreelancerProfileRepository;
 import com.giguniverse.backend.Auth.Repository.EmployerRepository;
 import com.giguniverse.backend.Auth.Repository.AdminRepository;
 
@@ -15,14 +22,17 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import javax.crypto.SecretKey;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Base64;
 import java.util.Map;
 import java.util.Optional;
+
 
 @RestController
 @RequestMapping("/api/auth")
@@ -136,4 +146,91 @@ public class AllAuthJwtController {
         response.addHeader("Set-Cookie", cookie.toString());
         return ResponseEntity.ok("Logged out successfully");
     }
+
+    @Autowired
+    FreelancerProfileRepository freelancerProfileRepository;
+    
+    @Autowired
+    EmployerProfileRepository employerProfileRepository;
+
+    @Autowired
+    AdminProfileRepository adminProfileRepository;
+
+
+    @GetMapping("/freelancer/nav-info")
+    public ResponseEntity<?> getFreelancerNavInfo() {
+        String userId = AuthUtil.getUserId();
+
+        if (userId == null) {
+            return ResponseEntity.status(401).body(Map.of("error", "User not authenticated"));
+        }
+
+        Freelancer freelancer = freelancerRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Freelancer not found"));
+
+        FreelancerProfile freelancerProfile = freelancerProfileRepository.findByFreelancer_FreelancerUserId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Freelancer profile not found"));
+
+
+
+        return ResponseEntity.ok(Map.of(
+            "userId", freelancer.getFreelancerUserId(),
+            "email", freelancer.getEmail(),
+            "username", freelancerProfile.getUsername(),
+            "isPremium", freelancerProfile.getPremiumStatus(),
+            "profilePicture", Base64.getEncoder().encodeToString(freelancerProfile.getProfilePicture()),
+            "profilePictureMimeType", freelancerProfile.getProfilePictureMimeType()
+        ));
+    }
+
+
+    @GetMapping("/employer/nav-info")
+    public ResponseEntity<?> getEmployerNavInfo() {
+        String userId = AuthUtil.getUserId();
+
+        if (userId == null) {
+            return ResponseEntity.status(401).body(Map.of("error", "User not authenticated"));
+        }
+
+        Employer employer = employerRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Employer not found"));
+
+        EmployerProfile employerProfile = employerProfileRepository.findByEmployer_EmployerUserId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Employer profile not found"));
+
+
+        return ResponseEntity.ok(Map.of(
+            "userId", employer.getEmployerUserId(),
+            "email", employer.getEmail(),
+            "username", employerProfile.getUsername(),
+            "isPremium", employerProfile.getPremiumStatus(),
+            "profilePicture", Base64.getEncoder().encodeToString(employerProfile.getProfilePicture()),
+            "profilePictureMimeType", employerProfile.getProfilePictureMimeType()
+        ));
+    }        
+
+    @GetMapping("/admin/nav-info")
+    public ResponseEntity<?> getAdminNavInfo() {
+        String userId = AuthUtil.getUserId();
+
+        if (userId == null) {
+            return ResponseEntity.status(401).body(Map.of("error", "User not authenticated"));
+        }
+
+        Admin admin = adminRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Admin not found"));
+
+        AdminProfile adminProfile = adminProfileRepository.findByAdmin_AdminUserId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Admin profile not found"));
+
+
+        return ResponseEntity.ok(Map.of(
+            "userId", admin.getAdminUserId(),
+            "email", admin.getEmail(),
+            "username", adminProfile.getUsername(),
+            "profilePicture", Base64.getEncoder().encodeToString(adminProfile.getProfilePicture()),
+            "profilePictureMimeType", adminProfile.getProfilePictureMimeType()
+        ));
+    }    
+
 }

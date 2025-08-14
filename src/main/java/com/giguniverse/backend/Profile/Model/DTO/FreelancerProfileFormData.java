@@ -18,9 +18,10 @@ public class FreelancerProfileFormData {
     private String location;
     private String selfDescription;
     private String highestEducationLevel;
+    private String profilePictureMimeType;
     private int hoursPerWeek;
     private List<String> jobCategory;
-    private List<String> preferredJobTitles;
+    private List<String> preferredJobTitle;
     private List<String> skillTags;
     private List<LanguageProficiency> languageProficiency;
     private String preferredPayRate;

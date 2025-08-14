@@ -32,12 +32,14 @@ public class FreelancerProfile {
 
     @Column(name = "profile_picture", columnDefinition = "bytea")
     private byte[] profilePicture;
+    private String profilePictureMimeType;
 
     @Size(max = 10000, message = "Self-description must be under 10,000 characters.")
     @Column(columnDefinition = "TEXT")
     private String selfDescription;
 
     private String highestEducationLevel;
+
     private Integer hoursPerWeek;
     
     @Column(columnDefinition = "TEXT")
@@ -56,6 +58,7 @@ public class FreelancerProfile {
     private Integer preferredPayrate;
 
     private Boolean openToWork;
+    
     private Boolean premiumStatus;
 
     @OneToOne

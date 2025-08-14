@@ -114,7 +114,7 @@ public class StripeWebhookController {
         Map<String, Object> wsPayload = new HashMap<>();
         wsPayload.put("stripeStatus", "success");
         wsPayload.put("completedPaymentSetup", true);
-        wsPayload.put("payoutsEnabled", false);
+        wsPayload.put("payoutsEnabled", true);
 
         System.out.println("[Test] Sending WebSocket message to: " + email);
         messagingTemplate.convertAndSendToUser(email, "/queue/stripe-status", wsPayload);

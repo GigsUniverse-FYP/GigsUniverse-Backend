@@ -10,4 +10,5 @@ import com.giguniverse.backend.Profile.Model.Mongo_Employer.EmployerJobExperienc
 @Repository
 public interface EmployerJobExperienceRepository extends MongoRepository<EmployerJobExperience, String> {
     List<EmployerJobExperience> findByUserId(String userId);
+    void deleteByUserId(String userId);
 }

@@ -39,7 +39,7 @@ public class StripeWebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @EventListener
     public void handleSessionConnect(SessionConnectEvent event) {
         Principal principal = event.getUser();
-        System.out.println("🧠 Connected WebSocket principal: " + (principal != null ? principal.getName() : "null"));
+        System.out.println("Connected WebSocket principal: " + (principal != null ? principal.getName() : "null"));
     }
 
     @Autowired

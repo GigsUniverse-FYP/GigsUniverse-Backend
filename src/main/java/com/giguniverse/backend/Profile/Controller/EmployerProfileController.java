@@ -18,6 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.giguniverse.backend.Auth.Session.AuthUtil;
+import com.giguniverse.backend.Profile.Model.DTO.EmployerProfileDataResponse;
 import com.giguniverse.backend.Profile.Model.DTO.EmployerProfileFormData;
 import com.giguniverse.backend.Profile.Service.EmployerProfileService;
 
@@ -63,6 +64,12 @@ public class EmployerProfileController {
             logger.error("Received data: {}", data);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
+    }
+
+    @GetMapping("/my-profile")
+    public ResponseEntity<?> getMyProfile() {
+        EmployerProfileDataResponse response = employerProfileService.getFullEmployerProfile();
+        return ResponseEntity.ok(response);
     }
 
 

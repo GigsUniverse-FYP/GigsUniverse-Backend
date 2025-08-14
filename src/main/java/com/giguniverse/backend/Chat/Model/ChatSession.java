@@ -1,11 +1,13 @@
 package com.giguniverse.backend.Chat.Model;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import jakarta.persistence.Id;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -13,17 +15,26 @@ import lombok.NoArgsConstructor;
 @Data 
 @NoArgsConstructor
 @AllArgsConstructor 
-@Document("private_chat_sessions")
+@Document(collection = "chat_sessions")
 public class ChatSession {
 
-    @Id private String chatID; // the ID of Chat Session
-    private List<String> participants;
-    private ChatMessage lastMessage; // The Last message in the Chat Session
-    private Map<String, Integer> unreadCount; // Mapping UserID to unread Message Counts
+    @Id
+    private String id;
 
-    // Handle Group Chats
-    private boolean isGroupChat; // true if group chat, false if private chat
-    private String groupName; // Name of the group chat, if applicable
+    @Indexed
+    private List<String> participants; // list of participants (including the authenticated user + any other participants)
+
+    private LastMessageInfo lastMessage; // show last message available in the chat session
+    
+    private Map<String, Integer> unreadCount; // userId : unread count
+
+    private Map<String, String> roles; // userId : role (admin, member)
+
+    private boolean groupChat; // is it a group chat or not
+
+    private String groupName; // group name to display
+
+    private Instant createdAt; // date created
+
+    private Instant updatedAt; // date updated
 }
-
-

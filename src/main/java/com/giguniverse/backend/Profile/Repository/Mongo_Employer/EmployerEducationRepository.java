@@ -10,4 +10,5 @@ import java.util.List;
 @Repository
 public interface EmployerEducationRepository extends MongoRepository<EmployerEducation, String> {
     List<EmployerEducation> findByUserId(String userId);
+    void deleteByUserId(String userId);
 }

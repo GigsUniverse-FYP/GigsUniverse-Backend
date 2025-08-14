@@ -2,6 +2,7 @@ package com.giguniverse.backend.Onboarding.Stripe_Express;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -68,6 +69,23 @@ public class StripeController {
         result.put("userId", userId);
 
         return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/express-login")
+    public ResponseEntity<?> getExpressLoginLink() {
+
+        String userId = AuthUtil.getUserId();
+
+        Optional<Freelancer> optional = freelancerRepository.findByFreelancerUserId(userId);
+        if (optional.isEmpty()) return ResponseEntity.notFound().build();
+
+        try {
+            String accountId = optional.get().getStripeAccountId();
+            String loginUrl = stripeService.generateLoginLink(accountId);
+            return ResponseEntity.ok(Map.of("url", loginUrl));
+        } catch (StripeException e) {
+            return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
+        }
     }
 }
 

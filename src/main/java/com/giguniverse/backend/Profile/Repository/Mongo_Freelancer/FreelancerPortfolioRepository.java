@@ -10,6 +10,7 @@ import java.util.List;
 @Repository
 public interface FreelancerPortfolioRepository extends MongoRepository<FreelancerPortfolio, String> {
     List<FreelancerPortfolio> findByUserId(String userId);
+    void deleteByUserId(String userId);
 }
 
 

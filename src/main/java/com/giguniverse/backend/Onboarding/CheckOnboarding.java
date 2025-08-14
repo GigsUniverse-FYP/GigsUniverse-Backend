@@ -11,8 +11,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.giguniverse.backend.Auth.Model.Admin;
 import com.giguniverse.backend.Auth.Model.Employer;
 import com.giguniverse.backend.Auth.Model.Freelancer;
+import com.giguniverse.backend.Auth.Repository.AdminRepository;
 import com.giguniverse.backend.Auth.Repository.EmployerRepository;
 import com.giguniverse.backend.Auth.Repository.FreelancerRepository;
 import com.giguniverse.backend.Auth.Session.AuthUtil;
@@ -24,13 +26,14 @@ import org.springframework.web.bind.annotation.PostMapping;
 @RequestMapping("/api/onboarding")
 public class CheckOnboarding {
 
-    // curl -i -X POST "https://fast-garfish-super.ngrok-free.app/api/stripe/webhook" -H "Content-Type: application/json" -d "{\"type\": \"checkout.session.completed\", \"data\": {\"object\": {\"id\": \"cs_test_123\"}}}"
-
     @Autowired
     private FreelancerRepository freelancerRepo;
 
     @Autowired
     private EmployerRepository employerRepo;
+
+    @Autowired
+    private AdminRepository adminRepo;
 
     @GetMapping("/freelancer")
     public ResponseEntity<?> checkFreelancerOnboardingStatus() {
@@ -147,5 +150,24 @@ public class CheckOnboarding {
         employerRepo.save(employer);
 
         return ResponseEntity.ok("Employer onboarding marked as complete");
+    }
+
+    @GetMapping("admin/profile")
+    public ResponseEntity<?> getAdminProfile() {
+        String userId = AuthUtil.getUserId();
+
+        if (userId == null) {
+            return ResponseEntity.status(401).body(Map.of("error", "User not authenticated"));
+        }
+
+        Optional<Admin> optional = adminRepo.findByAdminUserId(userId);
+        if (optional.isEmpty()) return ResponseEntity.notFound().build();
+
+        Admin admin = optional.get();
+
+        Map<String, Object> profile = new HashMap<>();
+        profile.put("profileCompleted", admin.isProfileCompleted());
+
+        return ResponseEntity.ok(profile);
     }
 }

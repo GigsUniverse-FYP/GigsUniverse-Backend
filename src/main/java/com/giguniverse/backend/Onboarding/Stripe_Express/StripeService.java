@@ -7,12 +7,19 @@ import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Account;
 import com.stripe.model.AccountLink;
+import com.stripe.model.LoginLink;
 import com.stripe.param.AccountCreateParams;
 import com.stripe.param.AccountLinkCreateParams;
+import com.stripe.param.LoginLinkCreateOnAccountParams;
 
 import jakarta.annotation.PostConstruct;
+
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+
+
+
 
 @Service
 public class StripeService {
@@ -100,6 +107,12 @@ public class StripeService {
                 .build();
 
         return AccountLink.create(linkParams).getUrl();
+    }
+
+    public String generateLoginLink(String connectedAccountId) throws StripeException {
+        LoginLinkCreateOnAccountParams params = LoginLinkCreateOnAccountParams.builder().build();
+        LoginLink loginLink = LoginLink.createOnAccount(connectedAccountId, params);
+        return loginLink.getUrl();
     }
 
 }

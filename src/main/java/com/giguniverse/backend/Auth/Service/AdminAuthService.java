@@ -146,6 +146,8 @@ public class AdminAuthService {
         Admin admin = optional.get();
         PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
         if (passwordEncoder.matches(rawPassword, admin.getPassword())) {
+            admin.setLastLoginDate(LocalDateTime.now());
+            adminRepo.save(admin);
             return jwtUtil.generateJwtToken(admin.getAdminUserId(), admin.getEmail(), admin.getRole());
         } else {
             return null;

@@ -10,4 +10,5 @@ import com.giguniverse.backend.Profile.Model.Mongo_Employer.EmployerCertificatio
 @Repository
 public interface EmployerCertificationRepository extends MongoRepository<EmployerCertification, String> {
     List<EmployerCertification> findByUserId(String userId);
+    void deleteByUserId(String userId);
 }

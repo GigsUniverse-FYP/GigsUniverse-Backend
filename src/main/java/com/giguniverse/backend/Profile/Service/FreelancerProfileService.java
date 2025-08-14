@@ -2,6 +2,7 @@ package com.giguniverse.backend.Profile.Service;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -15,6 +16,7 @@ import com.giguniverse.backend.Auth.Model.Freelancer;
 import com.giguniverse.backend.Auth.Repository.FreelancerRepository;
 import com.giguniverse.backend.Auth.Session.AuthUtil;
 import com.giguniverse.backend.Profile.Model.FreelancerProfile;
+import com.giguniverse.backend.Profile.Model.DTO.FreelancerProfileDataResponse;
 import com.giguniverse.backend.Profile.Model.DTO.FreelancerProfileFormData;
 import com.giguniverse.backend.Profile.Model.Mongo_Freelancer.FreelancerCertification;
 import com.giguniverse.backend.Profile.Model.Mongo_Freelancer.FreelancerEducation;
@@ -34,6 +36,7 @@ import jakarta.transaction.Transactional;
 
 @Service
 public class FreelancerProfileService {
+
     private final ObjectMapper mapper = new ObjectMapper();
 
     public ResponseEntity<Map<String, String>> getCurrentUser() {
@@ -90,12 +93,18 @@ public class FreelancerProfileService {
 
         Freelancer freelancer = freelancerRepo.findByFreelancerUserId(userId)
                 .orElseThrow(() -> new RuntimeException("Freelancer not found"));
+
+        
     
         // 1. Save to PostgreSQL
-        FreelancerProfile pgProfile = new FreelancerProfile();
+        FreelancerProfile pgProfile = pgProfileRepo.findByFreelancer(freelancer)
+            .orElseGet(() -> {
+                FreelancerProfile newProfile = new FreelancerProfile();
+                newProfile.setFreelancer(freelancer);
+                freelancer.setProfile(newProfile);
+                return newProfile;
+            });
 
-        pgProfile.setFreelancer(freelancer);
-        freelancer.setProfile(pgProfile);   
 
         pgProfile.setFullName(formData.getFullName());
         pgProfile.setUsername(formData.getUsername());
@@ -107,25 +116,35 @@ public class FreelancerProfileService {
         
         if (profilePicture != null && !profilePicture.isEmpty()) {
             pgProfile.setProfilePicture(profilePicture.getBytes());
-        } else if (pgProfile.getProfilePicture() == null) {
-            pgProfile.setProfilePicture(new byte[0]); // Empty byte array
-        }
+            pgProfile.setProfilePictureMimeType(formData.getProfilePictureMimeType());
+
+        } 
         
         pgProfile.setSelfDescription(formData.getSelfDescription());
         pgProfile.setHighestEducationLevel(formData.getHighestEducationLevel());
         pgProfile.setHoursPerWeek(formData.getHoursPerWeek());
         pgProfile.setJobCategory(String.join(",", formData.getJobCategory()));
-        pgProfile.setPreferredJobTitle(String.join(",", formData.getPreferredJobTitles()));
+        pgProfile.setPreferredJobTitle(String.join(",", formData.getPreferredJobTitle()));
         pgProfile.setSkillTags(String.join(",", formData.getSkillTags()));
         pgProfile.setLanguageProficiency(mapper.writeValueAsString(formData.getLanguageProficiency()));
         pgProfile.setPreferredPayrate(Integer.parseInt(formData.getPreferredPayRate()));
         pgProfile.setOpenToWork(formData.isOpenToWork());
+
+        if (pgProfile.getPremiumStatus() == null) {
+            pgProfile.setPremiumStatus(false);
+        }
         
         pgProfileRepo.save(pgProfile);
 
         // 2. Save to MongoDB collections
         // Resume
         if (resumeFile != null) {
+
+            List<FreelancerResume> existingResumes = mongoResumeRepo.findByUserId(userId);
+            if (!existingResumes.isEmpty()) {
+                mongoResumeRepo.deleteByUserId(userId);
+            }
+
             FreelancerResume resume = new FreelancerResume();
             resume.setUserId(userId);
             resume.setFileName(resumeFile.getOriginalFilename());
@@ -135,7 +154,13 @@ public class FreelancerProfileService {
         }
 
         // Job Experiences
-        if (!formData.getJobExperiences().isEmpty()) {
+        if (formData.getJobExperiences() != null && !formData.getJobExperiences().isEmpty()) {
+
+            List<FreelancerJobExperience> existingJobExps = mongoJobExpRepo.findByUserId(userId);
+            if (!existingJobExps.isEmpty()) {
+                mongoJobExpRepo.deleteByUserId(userId);
+            }
+
             FreelancerJobExperience jobExp = new FreelancerJobExperience();
             jobExp.setUserId(userId);
             jobExp.setJobExperiences(formData.getJobExperiences().stream()
@@ -146,6 +171,12 @@ public class FreelancerProfileService {
 
         // Portfolio Files
         if (portfolioFiles != null) {
+
+            List<FreelancerPortfolio> existingPortfolios = mongoPortfolioRepo.findByUserId(userId);
+            if (!existingPortfolios.isEmpty()) {
+                mongoPortfolioRepo.deleteByUserId(userId);
+            }
+
             for (MultipartFile file : portfolioFiles) {
                 FreelancerPortfolio portfolio = new FreelancerPortfolio();
                 portfolio.setUserId(userId);
@@ -157,7 +188,13 @@ public class FreelancerProfileService {
         }
 
         // Education
-        if (!formData.getEducations().isEmpty()) {
+        if (formData.getEducations() != null && !formData.getEducations().isEmpty()) {
+
+            List<FreelancerEducation> existingEducations = mongoEduRepo.findByUserId(userId);
+            if (!existingEducations.isEmpty()) {
+                mongoEduRepo.deleteByUserId(userId);
+            }
+
             FreelancerEducation education = new FreelancerEducation();
             education.setUserId(userId);
             education.setEducationExperiences(formData.getEducations().stream()
@@ -169,6 +206,13 @@ public class FreelancerProfileService {
 
         // Certifications
         if (certificationFiles != null) {
+
+            List<FreelancerCertification> existingCerts = mongoCertRepo.findByUserId(userId);
+            if (!existingCerts.isEmpty()) {
+                mongoCertRepo.deleteByUserId(userId);
+            }
+
+
             for (MultipartFile file : certificationFiles) {
                 FreelancerCertification certification = new FreelancerCertification();
                 certification.setUserId(userId);
@@ -184,4 +228,120 @@ public class FreelancerProfileService {
         freelancerRepo.save(freelancer);
     }
 
+
+
+    // Function to get the full freelancer profile data
+    public FreelancerProfileDataResponse getFullFreelancerProfile() {
+        String userId = AuthUtil.getUserId();
+        if (userId == null) {
+            throw new RuntimeException("User not authenticated");
+        }
+
+        FreelancerProfile pgProfile = pgProfileRepo.findByFreelancer_FreelancerUserId(userId)
+                .orElseThrow(() -> new RuntimeException("Freelancer profile not found"));
+
+        FreelancerProfileDataResponse response = new FreelancerProfileDataResponse();
+            response.setFreelancerProfileId(userId);
+            response.setFullName(pgProfile.getFullName());
+            response.setUsername(pgProfile.getUsername());
+            response.setGender(pgProfile.getGender());
+            response.setDob(pgProfile.getDob().toString());
+            response.setEmail(pgProfile.getEmail());
+            response.setPhone(pgProfile.getPhone());
+            response.setLocation(pgProfile.getLocation());
+            response.setProfilePicture(Base64.getEncoder().encodeToString(pgProfile.getProfilePicture()));
+            response.setProfilePictureMimeType(pgProfile.getProfilePictureMimeType());
+            response.setSelfDescription(pgProfile.getSelfDescription());
+            response.setHighestEducationLevel(pgProfile.getHighestEducationLevel());
+            response.setHoursPerWeek(pgProfile.getHoursPerWeek());
+            response.setJobCategory(pgProfile.getJobCategory());
+            response.setPreferredJobTitle(pgProfile.getPreferredJobTitle());
+            response.setSkillTags(pgProfile.getSkillTags());
+            response.setLanguageProficiency(pgProfile.getLanguageProficiency());
+            response.setPreferredPayRate(pgProfile.getPreferredPayrate());
+            response.setOpenToWork(pgProfile.getOpenToWork());
+            response.setPremiumStatus(pgProfile.getPremiumStatus());
+        // MongoDB section
+
+        // 1. Resume
+        List<FreelancerResume> resumes = mongoResumeRepo.findByUserId(userId);
+        if (!resumes.isEmpty()) {
+            FreelancerResume resume = resumes.get(0);
+            FreelancerProfileDataResponse.Resume resumeDto = new FreelancerProfileDataResponse.Resume();
+            resumeDto.setFileName(resume.getFileName());
+            resumeDto.setContentType(resume.getContentType());
+            resumeDto.setBase64Data(Base64.getEncoder().encodeToString(resume.getFileData()));
+            response.setResumeFile(resumeDto);
+        }
+
+        // 2. Portfolios
+        List<FreelancerPortfolio> portfolioList = mongoPortfolioRepo.findByUserId(userId);
+        if (!portfolioList.isEmpty()) {
+            List<FreelancerProfileDataResponse.PortfolioFile> portfolioDtos = portfolioList.stream()
+                .map(file -> {
+                    FreelancerProfileDataResponse.PortfolioFile dto = new FreelancerProfileDataResponse.PortfolioFile();
+                    dto.setFileName(file.getFileName());
+                    dto.setContentType(file.getContentType());
+                    dto.setBase64Data(Base64.getEncoder().encodeToString(file.getFileData()));
+                    return dto;
+                }).collect(Collectors.toList());
+            response.setPortfolioFiles(portfolioDtos);
+        }
+
+        // 3. Certifications
+        List<FreelancerCertification> certList = mongoCertRepo.findByUserId(userId);
+        if (!certList.isEmpty()) {
+            List<FreelancerProfileDataResponse.CertificateFile> certDtos = certList.stream()
+                .map(file -> {
+                    FreelancerProfileDataResponse.CertificateFile dto = new FreelancerProfileDataResponse.CertificateFile();
+                    dto.setFileName(file.getFileName());
+                    dto.setContentType(file.getContentType());
+                    dto.setBase64Data(Base64.getEncoder().encodeToString(file.getFileData()));
+                    return dto;
+                }).collect(Collectors.toList());
+            response.setCertificationFiles(certDtos);
+        }
+
+        // 4. Job Experiences
+        List<FreelancerJobExperience> jobExpList = mongoJobExpRepo.findByUserId(userId);
+        if (!jobExpList.isEmpty()) {
+            FreelancerJobExperience jobExp = jobExpList.get(0); 
+            if (!jobExp.getJobExperiences().isEmpty()) {
+                List<FreelancerProfileDataResponse.JobExperience> jobDtos = jobExp.getJobExperiences().stream()
+                    .map(exp -> {
+                        FreelancerProfileDataResponse.JobExperience dto = new FreelancerProfileDataResponse.JobExperience();
+                        dto.setJobTitle(exp.getJobTitle());
+                        dto.setFromDate(exp.getFromDate());
+                        dto.setToDate(exp.getToDate());
+                        dto.setCompany(exp.getCompany());
+                        dto.setDescription(exp.getDescription());
+                        dto.setCurrentJob(exp.isCurrentJob());
+                        return dto;
+                    }).collect(Collectors.toList());
+                response.setJobExperiences(jobDtos);
+            }
+        }
+
+        // 5. Education
+        List<FreelancerEducation> eduList = mongoEduRepo.findByUserId(userId);
+        if (!eduList.isEmpty()) {
+            FreelancerEducation edu = eduList.get(0);
+            if (!edu.getEducationExperiences().isEmpty()) {
+                List<FreelancerProfileDataResponse.Education> eduDtos = edu.getEducationExperiences().stream()
+                    .map(item -> {
+                        FreelancerProfileDataResponse.Education dto = new FreelancerProfileDataResponse.Education();
+                        dto.setInstitute(item.getInstitute());
+                        dto.setTitle(item.getTitle());
+                        dto.setCourseName(item.getCourseName());
+                        dto.setFromDate(item.getFromDate());
+                        dto.setToDate(item.getToDate());
+                        dto.setCurrentStudying(item.isCurrentStudying());
+                        return dto;
+                    }).collect(Collectors.toList());
+                response.setEducations(eduDtos);
+            }
+        }
+
+        return response;
+    }
 }

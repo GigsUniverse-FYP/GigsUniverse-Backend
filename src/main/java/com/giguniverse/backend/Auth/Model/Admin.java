@@ -2,6 +2,8 @@ package com.giguniverse.backend.Auth.Model;
 
 import java.time.LocalDateTime;
 
+import com.giguniverse.backend.Profile.Model.AdminProfile;
+
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import lombok.Data;
@@ -33,7 +35,13 @@ public class Admin {
     // check user online status
     private boolean onlineStatus = false;
 
+    // profile setup
+    private boolean profileCompleted = false;
+
     // Reset Password Token
     private String resetPasswordToken;
     private LocalDateTime resetPasswordTokenExpiry;
+
+    @OneToOne(mappedBy = "admin", cascade = CascadeType.ALL)
+    private AdminProfile profile;
 }
