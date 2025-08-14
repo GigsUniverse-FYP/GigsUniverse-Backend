@@ -33,6 +33,7 @@ import com.giguniverse.backend.Chat.Repository.ChatSessionRepository;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 
 @Service
@@ -50,6 +51,9 @@ public class ChatService {
         this.freelancerRepository = freelancerRepository;
         this.adminRepository = adminRepository;
     }
+
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
 
     public List<ChatUserDTO> getAllChatUsers() {
         List<ChatUserDTO> allUsers = new ArrayList<>();
@@ -290,10 +294,8 @@ public class ChatService {
     }
 
     // Send a new message
-    public ChatMessage sendMessage(String chatId, String textContent, List<MultipartFile> files) throws IOException {
-        String senderId = AuthUtil.getUserId();
-        
-        // Retrieve chat session to determine receiver
+    public ChatMessage sendMessage(String chatId, String textContent, List<MultipartFile> files, String senderId) throws IOException {
+
         ChatSession session = sessionRepository.findById(chatId)
             .orElseThrow(() -> new RuntimeException("Chat session not found"));
         
@@ -339,6 +341,25 @@ public class ChatService {
         
         // Update chat session
         updateChatSession(chatId, savedMessage);
+
+        if (!session.isGroupChat() && receiverId != null) {
+            messagingTemplate.convertAndSendToUser(
+                receiverId,
+                "/queue/messages",
+                savedMessage
+            );
+        } else {
+            for (String participant : session.getParticipants()) {
+                if (!participant.equals(senderId)) {
+                    messagingTemplate.convertAndSendToUser(
+                        participant,
+                        "/queue/messages",
+                        savedMessage
+                    );
+                }
+            }
+        }
+
         
         return savedMessage;
     }
@@ -425,12 +446,21 @@ public class ChatService {
         mongoTemplate.updateMulti(query, update, ChatMessage.class);
 
         // Reset unread count for this user
+        String safeUserId = escapeKey(userId);
         ChatSession session = getChatSession(chatId);
         Map<String, Integer> unreadCount = session.getUnreadCount();
-        if (unreadCount != null && unreadCount.containsKey(userId)) {
-            unreadCount.put(userId, 0);
+        if (unreadCount != null && unreadCount.containsKey(safeUserId)) {
+            unreadCount.put(safeUserId, 0);
             session.setUnreadCount(unreadCount);
             sessionRepository.save(session);
+        }
+
+        for (String participant : session.getParticipants()) {
+            messagingTemplate.convertAndSendToUser(
+                participant,
+                "/queue/chat-updates",
+                convertToDto(session, participant) 
+            );
         }
     }
     

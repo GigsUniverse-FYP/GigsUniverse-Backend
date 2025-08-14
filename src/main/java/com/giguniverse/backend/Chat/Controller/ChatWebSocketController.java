@@ -5,29 +5,31 @@ import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import org.slf4j.Logger;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.giguniverse.backend.Auth.JWT.JwtUserPrincipal;
+// Changed import
 import com.giguniverse.backend.Chat.Model.Base64DecodingMultipartFile;
 import com.giguniverse.backend.Chat.Model.ChatMessage;
 import com.giguniverse.backend.Chat.Model.ChatSession;
-import com.giguniverse.backend.Chat.Service.ChatService;
 import com.giguniverse.backend.Chat.Model.FileRequest;
 import com.giguniverse.backend.Chat.Model.MessageRequest;
-import org.slf4j.LoggerFactory;
+import com.giguniverse.backend.Chat.Service.ChatService;
 
 @Controller
 public class ChatWebSocketController {
 
     private static final Logger logger = LoggerFactory.getLogger(ChatWebSocketController.class);
-
 
     private final SimpMessagingTemplate messagingTemplate;
     private final ChatService chatService;
@@ -38,13 +40,17 @@ public class ChatWebSocketController {
     }
 
     @MessageMapping("/chat/{chatId}/send")
-    public void sendMessage(@DestinationVariable String chatId, @Payload MessageRequest messageRequest, Principal principal
-    ) throws IOException {
-        String userId = principal.getName();
+    public void sendMessage(@DestinationVariable String chatId, @Payload MessageRequest messageRequest, Principal principal) 
+            throws IOException {
+
+        JwtUserPrincipal user = (JwtUserPrincipal) ((Authentication) principal).getPrincipal();
+        String userId = user.getUserId();
+        
         ChatMessage message = chatService.sendMessage(
             chatId,
             messageRequest.getTextContent(),
-            convertToMultipartFiles(messageRequest.getFiles())
+            convertToMultipartFiles(messageRequest.getFiles()),
+            userId
         );
 
         // Send to all participants except sender
@@ -71,9 +77,9 @@ public class ChatWebSocketController {
     }
 
     @MessageMapping("/chat/{chatId}/read")
-    public void markAsRead(@DestinationVariable String chatId, Principal principal
-    ) {
-        String userId = principal.getName();
+    public void markAsRead(@DestinationVariable String chatId, Principal principal) {
+        JwtUserPrincipal user = (JwtUserPrincipal) ((Authentication) principal).getPrincipal();
+        String userId = user.getUserId();
         chatService.markMessagesAsRead(chatId, userId);
         
         // Update chat list

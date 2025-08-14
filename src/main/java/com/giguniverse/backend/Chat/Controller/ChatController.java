@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.giguniverse.backend.Auth.Session.AuthUtil;
 import com.giguniverse.backend.Chat.Model.ChatMessage;
 import com.giguniverse.backend.Chat.Model.ChatSession;
 import com.giguniverse.backend.Chat.Model.ChatSessionDTO;
@@ -62,15 +63,15 @@ public class ChatController {
             @RequestParam(required = false) String textContent,
             @RequestParam(required = false) List<MultipartFile> files) throws IOException {
         
-        ChatMessage message = chatService.sendMessage(chatId, textContent, files);
+         String userId = AuthUtil.getUserId();
+        ChatMessage message = chatService.sendMessage(chatId, textContent, files, userId);
         return ResponseEntity.ok(message);
     }
 
     @GetMapping("/me")
     public Map<String, String> checkUser() {
-        Map<String, String> userInfo = chatService.getCurrentUser(); // <-- service returns both
+        Map<String, String> userInfo = chatService.getCurrentUser(); 
 
-        // Make sure nulls are handled
         Map<String, String> result = new HashMap<>();
         result.put("id", userInfo.getOrDefault("id", ""));
         result.put("email", userInfo.getOrDefault("email", ""));
