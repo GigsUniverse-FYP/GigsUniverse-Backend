@@ -18,19 +18,33 @@ public class ChatSessionDTO {
     private LastMessageInfo lastMessage;
     private Map<String, Integer> unreadCount; // userId : unread count
     private Map<String, String> roles; // userId : role ("admin", "member" in group chats)
-    private boolean groupChat; 
+    private boolean groupChat;
     private String groupName; // only present if groupChat == true
     private Instant createdAt;
     private Instant updatedAt;
 
     // frontend use
-    private String currentUserId;            
-    private String type;                    
-    private String displayName;             
-    private String otherUserId;              
-    private String displayAvatar;            
-    private String displayAvatarInitials;    
-    private Integer unreadForCurrentUser;   
+    private String currentUserId;
+    private String type;
+    private String displayName;
+    private String otherUserId;
+    private String displayAvatar;
+    private String displayAvatarInitials;
+    private Integer unreadForCurrentUser;
     private String otherUsername;
     private Boolean otherIsOnline;
+
+    public ChatSessionDTO(String id, LastMessageInfo lastMessage, Map<String, Integer> unreadCount,
+            List<ChatUserInfoDTO> participants, Map<String, String> roles,
+            boolean groupChat, String groupName, Instant createdAt, Instant updatedAt) {
+        this.id = id;
+        this.lastMessage = lastMessage;
+        this.unreadCount = unreadCount;
+        this.participants = participants;
+        this.roles = roles;
+        this.groupChat = groupChat;
+        this.groupName = groupName;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+    }
 }

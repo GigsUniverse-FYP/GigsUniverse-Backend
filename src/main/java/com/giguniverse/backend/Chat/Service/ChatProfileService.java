@@ -68,5 +68,6 @@ public class ChatProfileService {
         return "data:" + mimeType + ";base64," + Base64.getEncoder().encodeToString(imageBytes);
     }
 
+    
 
 }

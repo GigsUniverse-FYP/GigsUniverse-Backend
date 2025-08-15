@@ -18,13 +18,13 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.giguniverse.backend.Auth.JWT.JwtUserPrincipal;
-// Changed import
 import com.giguniverse.backend.Chat.Model.Base64DecodingMultipartFile;
 import com.giguniverse.backend.Chat.Model.ChatMessage;
 import com.giguniverse.backend.Chat.Model.ChatSession;
 import com.giguniverse.backend.Chat.Model.FileRequest;
 import com.giguniverse.backend.Chat.Model.MessageRequest;
 import com.giguniverse.backend.Chat.Service.ChatService;
+import com.giguniverse.backend.Chat.Websocket.JwtHandshakePrincipal;
 
 @Controller
 public class ChatWebSocketController {
@@ -78,18 +78,30 @@ public class ChatWebSocketController {
 
     @MessageMapping("/chat/{chatId}/read")
     public void markAsRead(@DestinationVariable String chatId, Principal principal) {
-        JwtUserPrincipal user = (JwtUserPrincipal) ((Authentication) principal).getPrincipal();
-        String userId = user.getUserId();
+        String userId = null;
+
+        if (principal instanceof JwtHandshakePrincipal) {
+            userId = principal.getName();
+        } else if (principal instanceof Authentication) {
+            Object p = ((Authentication) principal).getPrincipal();
+            if (p instanceof JwtUserPrincipal) {
+                userId = ((JwtUserPrincipal) p).getUserId();
+            } else {
+                userId = principal.getName(); // fallback
+            }
+        } else if (principal != null) {
+            userId = principal.getName();
+        }
+
+        if (userId == null) {
+            logger.warn("markAsRead: could not resolve principal for chatId={}", chatId);
+            return;
+        }
+
         chatService.markMessagesAsRead(chatId, userId);
-        
-        // Update chat list
-        ChatSession updatedSession = chatService.getChatSession(chatId);
-        messagingTemplate.convertAndSendToUser(
-            userId,
-            "/queue/chat-updates",
-            chatService.convertToDto(updatedSession, userId)
-        );
+
     }
+
 
     private List<MultipartFile> convertToMultipartFiles(List<FileRequest> files) {
         if (files == null) return new ArrayList<>();
