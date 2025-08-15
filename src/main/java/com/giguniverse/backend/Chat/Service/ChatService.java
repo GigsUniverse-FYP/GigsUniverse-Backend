@@ -626,4 +626,16 @@ public class ChatService {
         return dto;
     }
 
+    public ChatSession renameGroup(String chatId, String newName) {
+        ChatSession chat = chatSessionRepository.findById(chatId)
+                .orElseThrow(() -> new RuntimeException("Chat not found"));
+
+        if (!chat.isGroupChat()) {
+            throw new IllegalArgumentException("Cannot rename a non-group chat");
+        }
+
+        chat.setGroupName(newName);
+        return chatSessionRepository.save(chat); // saves and returns updated chat
+    }
+
 }
