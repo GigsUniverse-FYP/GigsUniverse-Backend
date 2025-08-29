@@ -1,0 +1,4 @@
+4242 4242 4242 4242
+Exp: any future date (e.g., 12/34)
+CVC: any 3 digits (e.g., 123)
+ZIP: any 5 digits (e.g., 12345)

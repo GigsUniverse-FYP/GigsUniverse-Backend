@@ -1,6 +1,7 @@
 package com.giguniverse.backend.Auth.Repository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import jakarta.transaction.Transactional;
@@ -18,6 +19,8 @@ public interface EmployerRepository extends JpaRepository<Employer, String> {
     Optional<Employer> findByEmail(String email);
     Optional<Employer> findByEmailConfirmationToken(String token);
     Optional<Employer> findByEmployerUserId(String employerUserId);
+
+    List<Employer> findByCompletedOnboardingTrue();
 
     @Query("SELECT f.completedOnboarding FROM Employer f WHERE f.employerUserId = :employerUserId")
     Optional<Boolean> isOnboarded(@Param("employerUserId") String employerUserId);

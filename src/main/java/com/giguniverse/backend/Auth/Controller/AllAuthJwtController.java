@@ -233,4 +233,12 @@ public class AllAuthJwtController {
         ));
     }    
 
+    @GetMapping("/me")
+    public ResponseEntity<?> getCurrentUserId() {
+        String userId = AuthUtil.getUserId();
+        if (userId == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+        return ResponseEntity.ok(Map.of("userId", userId));
+    }
 }

@@ -113,7 +113,7 @@ public class EmployerProfileService {
         }
 
         if (pgProfile.getAvailableCredits() == null){
-            pgProfile.setAvailableCredits(0);
+            pgProfile.setAvailableCredits(0L);
         }
         
 

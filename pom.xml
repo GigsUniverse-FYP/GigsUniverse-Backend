@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.5.4</version>
+		<version>3.5.5</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.giguniverse</groupId>
@@ -32,11 +32,6 @@
 	<dependencies>
 
 		<!-- Spring Data -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-data-jdbc</artifactId>
-		</dependency>
-
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-jpa</artifactId>
@@ -143,7 +138,12 @@
 		<dependency>
 			<groupId>com.stripe</groupId>
 			<artifactId>stripe-java</artifactId>
-			<version>29.0.0</version>
+			<version>25.0.0</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.google.code.gson</groupId>
+			<artifactId>gson</artifactId>
 		</dependency>
 
 	</dependencies>

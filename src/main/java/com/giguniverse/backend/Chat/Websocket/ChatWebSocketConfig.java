@@ -87,4 +87,11 @@ public class ChatWebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 })
                 .withSockJS();
     }
+
+    @Override
+    public void configureWebSocketTransport(org.springframework.web.socket.config.annotation.WebSocketTransportRegistration registration) {
+        registration.setMessageSizeLimit(1024 * 1024);   // 1 MB
+        registration.setSendBufferSizeLimit(1024 * 1024); // 1 MB
+        registration.setSendTimeLimit(20 * 1000); // 20 seconds
+    }
 }

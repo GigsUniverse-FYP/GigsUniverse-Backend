@@ -48,7 +48,7 @@ public class EmployerProfile {
     
     private Boolean premiumStatus;
 
-    private Integer availableCredits;
+    private Long availableCredits;
 
     @OneToOne
     @JoinColumn(name = "employer_user_id", referencedColumnName = "employerUserId")

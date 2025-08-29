@@ -16,6 +16,10 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, In
            "FROM SupportTicket s GROUP BY s.ticketStatus")
     List<StatusCount> countTicketsByStatus();
 
+    @Query("SELECT s.ticketStatus AS status, COUNT(s) AS count " +
+           "FROM SupportTicket s WHERE s.creatorId = :creatorId GROUP BY s.ticketStatus")
+    List<StatusCount> countTicketsByStatusForUser(String creatorId);
+
     interface StatusCount {
         String getStatus();
         Long getCount();

@@ -137,10 +137,12 @@ public class ChatService {
 
         if (chatSession.getParticipants() == null) {
             chatSession.setParticipants(new ArrayList<>());
+
         }
 
         if (!chatSession.getParticipants().contains(authenticatedUserId)) {
             chatSession.getParticipants().add(authenticatedUserId);
+
         }
 
         chatSession.setParticipants(
@@ -156,6 +158,7 @@ public class ChatService {
         for (String participantId : chatSession.getParticipants()) {
             String safeKey = participantId.replace(".", "\uFF0E");
             unreadMap.put(safeKey, 0);
+
         }
         chatSession.setUnreadCount(unreadMap);
 
@@ -175,7 +178,16 @@ public class ChatService {
             chatSession.setRoles(null);
         }
 
-        return chatSessionRepository.save(chatSession);
+        ChatSession saved = chatSessionRepository.save(chatSession);
+
+        saved.getParticipants().forEach(userId -> {
+            messagingTemplate.convertAndSendToUser(
+                    userId,
+                    "/queue/session-updates",
+                    saved);
+        });
+
+        return saved;
     }
 
     @Autowired
@@ -367,7 +379,6 @@ public class ChatService {
         ChatSession session = sessionRepository.findById(chatId)
                 .orElseThrow(() -> new RuntimeException("Chat session not found"));
 
-        // Update last message info
         LastMessageInfo lastMessage = new LastMessageInfo();
         lastMessage.setMessageId(message.getId());
         lastMessage.setSenderId(message.getSenderId());
@@ -375,7 +386,8 @@ public class ChatService {
 
         if (message.getTextContent() != null && !message.getTextContent().isEmpty()) {
             lastMessage.setContentPreview(
-                    message.getTextContent().length() > 50 ? message.getTextContent().substring(0, 50) + "..."
+                    message.getTextContent().length() > 50
+                            ? message.getTextContent().substring(0, 50) + "..."
                             : message.getTextContent());
         } else if (message.getFileName() != null && !message.getFileName().isEmpty()) {
             lastMessage.setContentPreview("[File]");
@@ -384,26 +396,37 @@ public class ChatService {
         }
 
         session.setLastMessage(lastMessage);
+        System.out.println("Last message set: " + lastMessage.getContentPreview());
 
-        // Update unread counts
         Map<String, Integer> unreadCount = session.getUnreadCount();
         if (unreadCount == null) {
             unreadCount = new HashMap<>();
         }
 
-        String safeSenderId = escapeKey(message.getSenderId()); // FIX: Escape senderId
+        String safeSenderId = escapeKey(message.getSenderId());
+        System.out.println("Sender ID (escaped): " + safeSenderId);
 
         for (String participant : session.getParticipants()) {
-            String safeParticipant = escapeKey(participant); // FIX: Escape every participant ID
+            String safeParticipant = escapeKey(participant);
             if (!safeParticipant.equals(safeSenderId)) {
                 unreadCount.compute(safeParticipant, (key, count) -> (count == null) ? 1 : count + 1);
             }
+            System.out.println("Participant: " + participant + ", Unread count: " + unreadCount.get(safeParticipant));
         }
 
         session.setUnreadCount(unreadCount);
         session.setUpdatedAt(Instant.now());
 
-        sessionRepository.save(session);
+        ChatSession updatedSession = sessionRepository.save(session);
+        System.out.println("Updated session saved. Unread count map: " + updatedSession.getUnreadCount());
+
+        for (String participant : updatedSession.getParticipants()) {
+            System.out.println("Sending updated session to: " + participant);
+            messagingTemplate.convertAndSendToUser(
+                    participant,
+                    "/queue/session-updates",
+                    updatedSession);
+        }
     }
 
     private static String escapeKey(String key) {
@@ -548,7 +571,6 @@ public class ChatService {
         chatSessionRepository.save(chat);
     }
 
-
     public void makeAdmin(String chatId, String userId) {
         ChatSession chat = chatSessionRepository.findById(chatId)
                 .orElseThrow(() -> new EntityNotFoundException("Chat not found"));
@@ -580,9 +602,12 @@ public class ChatService {
         ChatSession chat = chatSessionRepository.findById(chatId)
                 .orElseThrow(() -> new EntityNotFoundException("Chat not found"));
 
-        if (chat.getParticipants() == null) chat.setParticipants(new ArrayList<>());
-        if (chat.getRoles() == null) chat.setRoles(new HashMap<>());
-        if (chat.getUnreadCount() == null) chat.setUnreadCount(new HashMap<>());
+        if (chat.getParticipants() == null)
+            chat.setParticipants(new ArrayList<>());
+        if (chat.getRoles() == null)
+            chat.setRoles(new HashMap<>());
+        if (chat.getUnreadCount() == null)
+            chat.setUnreadCount(new HashMap<>());
 
         for (String userId : userIds) {
             if (!chat.getParticipants().contains(userId)) {

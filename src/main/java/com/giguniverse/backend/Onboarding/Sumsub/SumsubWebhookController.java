@@ -34,6 +34,7 @@ public class SumsubWebhookController {
     @PostMapping("/webhook")
     public ResponseEntity<String> handleSumsubWebhook(@RequestBody String payload) {
         try {
+            @SuppressWarnings("unchecked")
             Map<String, Object> json = objectMapper.readValue(payload, Map.class);
 
             System.out.println("📨 Webhook payload: " + payload);
@@ -44,6 +45,7 @@ public class SumsubWebhookController {
             // Determine review result
             String reviewResult = null;
             if (json.containsKey("reviewResult")) {
+                @SuppressWarnings("unchecked")
                 Map<String, Object> reviewResultMap = (Map<String, Object>) json.get("reviewResult");
                 reviewResult = (String) reviewResultMap.get("reviewAnswer");
             }
@@ -51,6 +53,7 @@ public class SumsubWebhookController {
             // Check for duplicate 
             boolean isDuplicate = false;
             if (json.containsKey("similarSearchInfo")) {
+                @SuppressWarnings("unchecked")
                 Map<String, Object> similarSearchInfo = (Map<String, Object>) json.get("similarSearchInfo");
                 String duplicateAnswer = (String) similarSearchInfo.get("answer");
                 if ("RED".equalsIgnoreCase(duplicateAnswer)) {

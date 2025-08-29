@@ -122,10 +122,11 @@ public class SupportTicketService {
 
 
     public List<SupportTicketRepository.StatusCount> getTicketStatusCounts() {
-        return ticketRepo.countTicketsByStatus();
+        String userId = AuthUtil.getUserId();
+        return ticketRepo.countTicketsByStatusForUser(userId);
     }
 
-        public List<Map<String, Object>> getTicketsForCurrentUser() {
+    public List<Map<String, Object>> getTicketsForCurrentUser() {
 
         String userId = AuthUtil.getUserId();
 

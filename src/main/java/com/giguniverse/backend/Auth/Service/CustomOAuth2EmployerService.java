@@ -67,7 +67,7 @@ public class CustomOAuth2EmployerService extends OidcUserService {
             throw ex;
         }
 
-        // ✅ Save to DB
+        // Save to DB
         Employer newUser = new Employer();
         newUser.setEmployerUserId(pendingId);
         newUser.setEmail(email);
