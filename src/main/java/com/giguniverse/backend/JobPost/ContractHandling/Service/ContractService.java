@@ -1,6 +1,9 @@
 package com.giguniverse.backend.JobPost.ContractHandling.Service;
 
 import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -107,6 +110,90 @@ public class ContractService {
         }
     }
 
+    private void sendRejectEmailToEmployer(String employerEmail, Contract contract) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true);
+
+            JobPost jobPost = jobPostRepository.findById(Integer.parseInt(contract.getJobId()))
+                    .orElseThrow(() -> new RuntimeException("Job not found"));
+
+            FreelancerProfile freelancer = freelancerProfileRepository.findByFreelancer_FreelancerUserId(contract.getFreelancerId())
+                    .orElseThrow(() -> new RuntimeException("Freelancer not found"));
+
+            String freelancerName = freelancer.getFullName();
+
+            String jobName = jobPost.getJobTitle();
+
+            String body = "<div style='font-family:Arial,sans-serif;font-size:14px;color:#333;'>"
+                    + "<p>Dear Employer,</p>"
+                    + "<p>The freelancer <strong>" + freelancerName + "</strong> has <span style='color:red;'>rejected</span> the contract for the following job:</p>"
+                    + "<p><strong>Job:</strong> " + jobName + " (ID: " + contract.getJobId() + ")</p>"
+                    + "<p><strong>Contract Period:</strong> " 
+                        + contract.getContractStartDate() + " to " + contract.getContractEndDate() + "</p>"
+                    + "<p><strong>Agreed Pay Rate:</strong> $" + contract.getAgreedPayRatePerHour() + "</p>"
+                    + "<p><strong>Hours per Week:</strong> " + contract.getHourPerWeek() + "</p>"
+                    + "<p><strong>Status:</strong> " + contract.getContractStatus() + "</p>"
+                    + "<br>"
+                    + "<p>Please login to your account to take further action.</p>"
+                    + "<br>"
+                    + "<p>Regards,<br>GigsUniverse Team</p>"
+                    + "</div>";
+
+            helper.setFrom("admin@gigsuniverse.studio");
+            helper.setTo(employerEmail);
+            helper.setSubject("Contract Rejected by Freelancer - GigsUniverse");
+            helper.setText(body, true);
+
+            mailSender.send(message);
+        } catch (MessagingException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void sendAcceptEmailToEmployer(String employerEmail, Contract contract) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true);
+
+            JobPost jobPost = jobPostRepository.findById(Integer.parseInt(contract.getJobId()))
+                    .orElseThrow(() -> new RuntimeException("Job not found"));
+
+            String jobName = jobPost.getJobTitle();
+
+            
+            FreelancerProfile freelancer = freelancerProfileRepository.findByFreelancer_FreelancerUserId(contract.getFreelancerId())
+                    .orElseThrow(() -> new RuntimeException("Freelancer not found"));
+
+            String freelancerName = freelancer.getFullName();
+
+            String body = "<div style='font-family:Arial,sans-serif;font-size:14px;color:#333;'>"
+                    + "<p>Dear Employer,</p>"
+                    + "<p>The freelancer <strong>" + freelancerName + "</strong> has <span style='color:green;'>accepted</span> the contract for the following job:</p>"
+                    + "<p><strong>Job:</strong> " + jobName + " (ID: " + contract.getJobId() + ")</p>"
+                    + "<p><strong>Contract Period:</strong> " 
+                        + contract.getContractStartDate() + " to " + contract.getContractEndDate() + "</p>"
+                    + "<p><strong>Agreed Pay Rate:</strong> $" + contract.getAgreedPayRatePerHour() + "</p>"
+                    + "<p><strong>Hours per Week:</strong> " + contract.getHourPerWeek() + "</p>"
+                    + "<p><strong>Status:</strong> " + contract.getContractStatus() + "</p>"
+                    + "<br>"
+                    + "<p>Please login to your account to manage the contract.</p>"
+                    + "<br>"
+                    + "<p>Regards,<br>GigsUniverse Team</p>"
+                    + "</div>";
+
+            helper.setFrom("admin@gigsuniverse.studio");
+            helper.setTo(employerEmail);
+            helper.setSubject("Contract Accepted by Freelancer - GigsUniverse");
+            helper.setText(body, true);
+
+            mailSender.send(message);
+        } catch (MessagingException e) {
+            e.printStackTrace();
+        }
+    }
+
+
 
     public Contract createContract(Contract contractRequest) {
         Contract contract = new Contract();
@@ -145,5 +232,107 @@ public class ContractService {
         }
 
         return contractRepository.save(contract);
+    }
+
+    // freelancer fetching contract details
+    public Map<String, Object> getContractDetails(String jobApplicationId) throws Exception {
+        Contract contract = contractRepository.findByJobApplicationId(jobApplicationId)
+                .orElseThrow(() -> new Exception("Contract not found"));
+
+        String employerName = employerProfileRepository.findByEmployer_EmployerUserId(contract.getEmployerId())
+                .map(e -> e.getFullName())
+                .orElse("Unknown Employer");
+
+        String freelancerName = freelancerProfileRepository.findByFreelancer_FreelancerUserId(contract.getFreelancerId())
+                .map(f -> f.getFullName())
+                .orElse("Unknown Freelancer");
+
+        String jobTitle = jobPostRepository.findById(Integer.parseInt(contract.getJobId()))
+                .map(job -> job.getJobTitle())
+                .orElse("Unknown Job");
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("jobId", contract.getJobId());
+        response.put("jobTitle", jobTitle);
+        response.put("jobApplicationId", contract.getJobApplicationId());
+        response.put("employerId", contract.getEmployerId());
+        response.put("employerName", employerName);
+        response.put("freelancerId", contract.getFreelancerId());
+        response.put("freelancerName", freelancerName);
+        response.put("payRate", contract.getAgreedPayRatePerHour());
+        response.put("hoursPerWeek", contract.getHourPerWeek());
+        response.put("startDate", contract.getContractStartDate());
+        response.put("endDate", contract.getContractEndDate());
+
+        return response;
+    }
+
+    public void rejectContract(String jobApplicationId, String freelancerId) throws Exception {
+        Contract contract = contractRepository
+                .findByJobApplicationIdAndFreelancerId(jobApplicationId, freelancerId)
+                .orElseThrow(() -> new Exception("Contract not found"));
+
+        contract.setContractStatus("rejected");
+
+        EmployerProfile employer = employerProfileRepository.findByEmployer_EmployerUserId(contract.getEmployerId())
+                .orElseThrow(() -> new RuntimeException("Employer not found"));
+
+        String employerEmail = employer.getEmail();
+
+        sendRejectEmailToEmployer(employerEmail, contract);
+
+        contractRepository.save(contract);
+    }
+
+    public void submitContract(String jobApplicationId, String freelancerId) throws Exception {
+        Contract contract = contractRepository
+                .findByJobApplicationIdAndFreelancerId(jobApplicationId, freelancerId)
+                .orElseThrow(() -> new Exception("Contract not found"));
+
+        Date now = new Date();
+        if (now.before(contract.getContractStartDate())) {
+            contract.setContractStatus("upcoming");
+        } else {
+            contract.setContractStatus("active");
+        }
+
+        EmployerProfile employer = employerProfileRepository.findByEmployer_EmployerUserId(contract.getEmployerId())
+                .orElseThrow(() -> new RuntimeException("Employer not found"));
+
+        String employerEmail = employer.getEmail();
+
+        sendAcceptEmailToEmployer(employerEmail, contract);
+
+        contractRepository.save(contract);
+    }
+
+    public String getContractStatus(String jobApplicationId) {
+        return contractRepository.findByJobApplicationId(jobApplicationId)
+                .map(Contract::getContractStatus)
+                .orElse("not_found");
+    }
+
+
+    public Map<String, String> getContractStatuses(List<String> jobApplicationIds) {
+        Map<String, String> result = new HashMap<>();
+
+        for (String id : jobApplicationIds) {
+            String status = getContractStatus(id); // reuse single method
+            result.put(id, status);
+        }
+
+        return result;
+    }
+
+    public int countEmployerActiveContracts(String employerId) {
+        return contractRepository.countByEmployerIdAndContractStatusIn(
+            employerId,
+            List.of("pending", "upcoming", "active")
+        );
+    }
+
+    
+    public int countActiveContractsByFreelancer(String freelancerId) {
+        return contractRepository.countFreelancerEligibleContracts(freelancerId);
     }
 }

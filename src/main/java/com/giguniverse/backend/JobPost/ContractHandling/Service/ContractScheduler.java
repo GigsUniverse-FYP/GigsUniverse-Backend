@@ -35,4 +35,18 @@ public class ContractScheduler {
             }
         }
     }
+
+    @Scheduled(cron = "0 */5 * * * ?") // runs every 5 minutes
+    @Transactional
+    public void activateUpcomingContracts() {
+        List<Contract> upcomingContracts = contractRepository.findByContractStatus("upcoming");
+        Date now = new Date();
+
+        for (Contract contract : upcomingContracts) {
+            if (contract.getContractStartDate() != null && now.after(contract.getContractStartDate())) {
+                contract.setContractStatus("active");
+                contractRepository.save(contract);
+            }
+        }
+    }
 }
