@@ -68,7 +68,7 @@ public class StripeService {
         } else {
             AccountCreateParams params = AccountCreateParams.builder()
                     .setType(AccountCreateParams.Type.EXPRESS)
-                    .setCountry("MY")
+                    .setCountry("US")
                     .setEmail(userEmail)
                     .setCapabilities(
                             AccountCreateParams.Capabilities.builder()

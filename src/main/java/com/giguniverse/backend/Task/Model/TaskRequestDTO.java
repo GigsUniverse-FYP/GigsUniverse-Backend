@@ -16,4 +16,5 @@ public class TaskRequestDTO {
     private String jobId;
     private String contractId;
     private String taskTotalPay;  
+    private String taskComment;
 }
