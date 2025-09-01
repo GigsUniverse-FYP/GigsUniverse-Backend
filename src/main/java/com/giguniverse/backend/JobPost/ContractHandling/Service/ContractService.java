@@ -4,6 +4,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -11,6 +12,12 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 import com.giguniverse.backend.Auth.Repository.FreelancerRepository;
+import com.giguniverse.backend.Feedback.Model.EmployerFeedback;
+import com.giguniverse.backend.Feedback.Model.EmployerFeedbackDTO;
+import com.giguniverse.backend.Feedback.Model.FreelancerFeedback;
+import com.giguniverse.backend.Feedback.Model.FreelancerFeedbackDTO;
+import com.giguniverse.backend.Feedback.Service.EmployerFeedbackService;
+import com.giguniverse.backend.Feedback.Service.FreelancerFeedbackService;
 import com.giguniverse.backend.JobPost.ApplyJob.Repository.JobApplicationRepository;
 import com.giguniverse.backend.JobPost.ContractHandling.Model.Contract;
 import com.giguniverse.backend.JobPost.ContractHandling.Model.ContractDetailsDTO;
@@ -42,6 +49,10 @@ public class ContractService {
     private JavaMailSender mailSender;
     @Autowired
     private FreelancerRepository freelancerRepository;
+    @Autowired
+    private FreelancerFeedbackService feedbackService;
+    @Autowired
+    private EmployerFeedbackService employerFeedbackService;
 
     public ContractDetailsDTO getContractDetails(Integer jobId, String employerId, String freelancerId) {
         // Fetch job
@@ -331,8 +342,74 @@ public class ContractService {
         );
     }
 
-    
     public int countActiveContractsByFreelancer(String freelancerId) {
         return contractRepository.countFreelancerEligibleContracts(freelancerId);
+    }
+
+    public Contract cancelContract(int contractId, String reason) {
+        Optional<Contract> contractOpt = contractRepository.findById(contractId);
+        if (contractOpt.isEmpty()) {
+            throw new RuntimeException("Contract not found with id: " + contractId);
+        }
+
+        Contract contract = contractOpt.get();
+        contract.setCancellationReason(reason);
+        return contractRepository.save(contract);
+    }
+
+    public boolean hasCancellationReason(int contractId) {
+        return contractRepository.findById(contractId)
+                .map(contract -> contract.getCancellationReason() != null && !contract.getCancellationReason().isEmpty())
+                .orElse(false);
+    }
+
+    
+    public boolean isCompletedOrCancelled(String contractId) {
+        return contractRepository.findById(Integer.parseInt(contractId))
+                .map(contract -> {
+                    String status = contract.getContractStatus();
+                    return "completed".equalsIgnoreCase(status) || "cancelled".equalsIgnoreCase(status);
+                })
+                .orElse(false); // return false if not found
+    }
+
+    public void completeContractWithFeedback(int contractId, FreelancerFeedbackDTO feedbackDTO) {
+        Contract contract = contractRepository.findById(contractId)
+                .orElseThrow(() -> new RuntimeException("Contract not found"));
+
+        contract.setContractStatus("completed");
+        contractRepository.save(contract);
+
+        FreelancerFeedback feedback = FreelancerFeedback.builder()
+                .rating(feedbackDTO.getRating())
+                .feedback(feedbackDTO.getFeedback())
+                .employerId(feedbackDTO.getEmployerId())
+                .freelancerId(feedbackDTO.getFreelancerId())
+                .jobId(feedbackDTO.getJobId())
+                .contractId(feedbackDTO.getContractId())
+                .build();
+
+        feedbackService.saveFeedback(feedback);
+    }
+
+
+    public void freelancerSendEmployerFeedback(int contractId, EmployerFeedbackDTO feedbackDTO) {
+
+        Contract contract = contractRepository.findById(contractId)
+                .orElseThrow(() -> new RuntimeException("Contract not found"));
+
+        contract.setFreelancerFeedback(true);
+        contractRepository.save(contract);
+
+        EmployerFeedback feedback = EmployerFeedback.builder()
+                .rating(feedbackDTO.getRating())
+                .feedback(feedbackDTO.getFeedback())
+                .employerId(feedbackDTO.getEmployerId())
+                .freelancerId(feedbackDTO.getFreelancerId())
+                .jobId(feedbackDTO.getJobId())
+                .contractId(feedbackDTO.getContractId())
+                .build();
+
+        employerFeedbackService.saveEmployerFeedback(feedback);
     }
 }

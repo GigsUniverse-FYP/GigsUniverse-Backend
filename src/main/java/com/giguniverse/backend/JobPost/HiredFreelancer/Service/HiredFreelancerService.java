@@ -108,6 +108,7 @@ public class HiredFreelancerService {
                     map.put("hourlyRate", contract.getAgreedPayRatePerHour());
                     map.put("totalHours", contract.getHourPerWeek());
                     map.put("freelancerId", currentFreelancerId);
+                    map.put("freelancerFeedback", contract.getFreelancerFeedback());
 
                     // Fetch job (for company + job name)
                     jobPostRepository.findByJobPostId(Integer.parseInt(contract.getJobId()))

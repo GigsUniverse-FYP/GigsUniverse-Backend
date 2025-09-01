@@ -35,6 +35,7 @@ import jakarta.mail.internet.MimeMessage;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
@@ -215,14 +216,26 @@ public class TaskService {
 
     // get tasks and relevant files
     public List<TaskWithFilesDTO> getTasksWithFiles(String employerId, String freelancerId, String contractId) {
+        // Fetch tasks
         List<Task> tasks = taskRepository.findByEmployerIdAndFreelancerIdAndContractId(employerId, freelancerId, contractId);
         List<Integer> taskIds = tasks.stream().map(Task::getTaskId).toList();
+
+        // Fetch file documents for the tasks
         List<TaskFileDocument> fileDocs = taskFileDocumentRepository.findByTaskIdIn(taskIds);
 
+        // Merge file entries per taskId to avoid duplicate key issues
         Map<Integer, List<TaskFileDocument.FileEntry>> taskFilesMap = fileDocs.stream()
-                .collect(Collectors.toMap(TaskFileDocument::getTaskId, TaskFileDocument::getFiles));
+                .collect(Collectors.toMap(
+                        TaskFileDocument::getTaskId,
+                        TaskFileDocument::getFiles,
+                        (existing, replacement) -> { // merge lists if duplicate taskId
+                            List<TaskFileDocument.FileEntry> merged = new ArrayList<>(existing);
+                            merged.addAll(replacement);
+                            return merged;
+                        }
+                ));
 
-        // Custom status order
+        // Custom status order for sorting
         Map<String, Integer> statusOrder = Map.of(
                 "pending", 1,
                 "submitted", 2,
@@ -230,6 +243,7 @@ public class TaskService {
                 "rejected", 4
         );
 
+        // Sort tasks by status and due date, then map to DTO
         return tasks.stream()
                 .sorted(Comparator
                         .<Task>comparingInt(task -> statusOrder.getOrDefault(task.getTaskStatus(), Integer.MAX_VALUE))
@@ -247,7 +261,6 @@ public class TaskService {
                         .build())
                 .toList();
     }
-
 
     // submit and edit task
     public Task submitTask(int taskId, String submissionNote, List<MultipartFile> files) throws IOException {

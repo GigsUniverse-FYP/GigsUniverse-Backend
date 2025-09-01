@@ -1,6 +1,7 @@
 package com.giguniverse.backend.JobPost.ContractHandling.Controller;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -8,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -15,6 +17,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.giguniverse.backend.Auth.Session.AuthUtil;
+import com.giguniverse.backend.Feedback.Model.EmployerFeedbackDTO;
+import com.giguniverse.backend.Feedback.Model.FreelancerFeedbackDTO;
 import com.giguniverse.backend.JobPost.ContractHandling.Model.Contract;
 import com.giguniverse.backend.JobPost.ContractHandling.Model.ContractDetailsDTO;
 import com.giguniverse.backend.JobPost.ContractHandling.Service.ContractService;
@@ -98,5 +102,53 @@ public class ContractController {
     public ResponseEntity<Map<String, Integer>> getFreelancerActiveContracts(@RequestParam String freelancerId) {
         int count = contractService.countActiveContractsByFreelancer(freelancerId);
         return ResponseEntity.ok(Collections.singletonMap("count", count));
+    }
+
+    @PostMapping("/cancel/{contractId}")
+    public ResponseEntity<?> cancelContract(
+            @PathVariable int contractId,
+            @RequestBody Map<String, String> requestBody) {
+
+        String reason = requestBody.get("reason");
+        if (reason == null || reason.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("Cancellation reason is required.");
+        }
+
+        Contract updatedContract = contractService.cancelContract(contractId, reason);
+        return ResponseEntity.ok(updatedContract);
+    }
+
+    @GetMapping("/cancel-reason/{contractId}")
+    public ResponseEntity<Map<String, Boolean>> checkCancellationReason(@PathVariable int contractId) {
+        boolean exists = contractService.hasCancellationReason(contractId);
+
+        Map<String, Boolean> response = new HashMap<>();
+        response.put("exists", exists);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/checkstatus/{contractId}")
+    public ResponseEntity<Boolean> isCompletedOrCancelled(@PathVariable String contractId) {
+        boolean result = contractService.isCompletedOrCancelled(contractId);
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/complete/{contractId}")
+    public String completeContract(
+            @PathVariable int contractId,
+            @RequestBody FreelancerFeedbackDTO feedbackDTO
+    ) {
+        contractService.completeContractWithFeedback(contractId, feedbackDTO);
+        return "Contract completed and feedback saved successfully";
+    }
+
+    @PostMapping("/complete/freelancer/{contractId}")
+    public String completeContractFeedback (
+            @PathVariable int contractId,
+            @RequestBody EmployerFeedbackDTO feedbackDTO
+    ) {
+        contractService.freelancerSendEmployerFeedback(contractId, feedbackDTO);
+        return "Contract completed and feedback saved successfully";
     }
 }

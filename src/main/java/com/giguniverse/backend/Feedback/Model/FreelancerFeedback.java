@@ -13,7 +13,7 @@ import jakarta.persistence.*;
 @Builder
 @Entity
 @Table(name = "feedback_freelancer")
-public class FreelancerFeedback { // given by freelancer to employer
+public class FreelancerFeedback { // given by employer to freelancer
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int freelancerFeedbackId;
