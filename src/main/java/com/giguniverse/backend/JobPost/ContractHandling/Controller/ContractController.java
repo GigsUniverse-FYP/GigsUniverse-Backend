@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -20,6 +21,7 @@ import com.giguniverse.backend.Auth.Session.AuthUtil;
 import com.giguniverse.backend.Feedback.Model.EmployerFeedbackDTO;
 import com.giguniverse.backend.Feedback.Model.FreelancerFeedbackDTO;
 import com.giguniverse.backend.JobPost.ContractHandling.Model.Contract;
+import com.giguniverse.backend.JobPost.ContractHandling.Model.ContractAdminDetailsDTO;
 import com.giguniverse.backend.JobPost.ContractHandling.Model.ContractDetailsDTO;
 import com.giguniverse.backend.JobPost.ContractHandling.Service.ContractService;
 
@@ -150,5 +152,22 @@ public class ContractController {
     ) {
         contractService.freelancerSendEmployerFeedback(contractId, feedbackDTO);
         return "Contract completed and feedback saved successfully";
+    }
+
+    @GetMapping("/admin-details")
+    public List<ContractAdminDetailsDTO> getAllContractDetails() {
+        return contractService.getAllContractsWithDetails();
+    }
+
+    @PutMapping("/{id}/approve-cancellation")
+    public ResponseEntity<Contract> approveCancellation(@PathVariable int id) {
+        Contract updated = contractService.approveCancellation(id);
+        return ResponseEntity.ok(updated);
+    }
+
+    @PutMapping("/{id}/reject-cancellation")
+    public ResponseEntity<Contract> rejectCancellation(@PathVariable int id) {
+        Contract updated = contractService.rejectCancellation(id);
+        return ResponseEntity.ok(updated);
     }
 }

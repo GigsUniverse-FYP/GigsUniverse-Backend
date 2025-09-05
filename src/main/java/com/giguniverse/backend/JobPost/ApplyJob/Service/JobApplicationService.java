@@ -13,10 +13,13 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.giguniverse.backend.Feedback.Model.FreelancerFeedback;
+import com.giguniverse.backend.Feedback.Repository.FreelancerFeedbackRepository;
 import com.giguniverse.backend.JobPost.ApplyJob.Model.FreelancerApplicationDTO;
 import com.giguniverse.backend.JobPost.ApplyJob.Model.JobApplication;
 import com.giguniverse.backend.JobPost.ApplyJob.Model.JobApplicationDTO;
 import com.giguniverse.backend.JobPost.ApplyJob.Repository.JobApplicationRepository;
+import com.giguniverse.backend.JobPost.ContractHandling.Repository.ContractRepository;
 import com.giguniverse.backend.JobPost.CreateJobPost.model.JobPost;
 import com.giguniverse.backend.JobPost.CreateJobPost.repository.JobPostRepository;
 import com.giguniverse.backend.Profile.Model.FreelancerProfile;
@@ -35,6 +38,12 @@ public class JobApplicationService {
 
     @Autowired
     private FreelancerProfileRepository freelancerProfileRepository;
+
+    @Autowired
+    private FreelancerFeedbackRepository freelancerFeedbackRepository;
+
+    @Autowired
+    private ContractRepository contractRepository;
 
     public JobApplication applyForJob(String jobId, String hourlyRate, String jobProposal, String freelancerId) {
 
@@ -101,6 +110,16 @@ public class JobApplicationService {
                             Base64.getEncoder().encodeToString(profile.get().getProfilePicture());
                 }
 
+                List<FreelancerFeedback> feedbackList = freelancerFeedbackRepository
+                                .findByFreelancerId(app.getFreelancerId());
+
+                double rating = feedbackList.isEmpty() ? 0 :
+                    feedbackList.stream().mapToDouble(FreelancerFeedback::getRating).average().orElse(0);
+
+                long completedJobs = contractRepository
+                    .countByFreelancerIdAndContractStatus(app.getFreelancerId(), "completed");
+
+
                 return new JobApplicationDTO(
                         app.getJobApplicationId(),
                         app.getFreelancerId(),
@@ -109,7 +128,9 @@ public class JobApplicationService {
                         app.getHourlyRate() != null ? Integer.valueOf(app.getHourlyRate()) : null,
                         app.getJobProposal(),
                         sdf.format(app.getAppliedDate()),
-                        app.getApplicationStatus()
+                        app.getApplicationStatus(),
+                        rating,
+                        completedJobs
                 );
             })
             .collect(Collectors.toList());

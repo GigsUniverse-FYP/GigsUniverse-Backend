@@ -14,5 +14,7 @@ public class JobApplicationDTO {
     private String proposal;
     private String appliedAt;
     private String jobStatus;
+    private double rating;
+    private long completedJobs;
 }
 

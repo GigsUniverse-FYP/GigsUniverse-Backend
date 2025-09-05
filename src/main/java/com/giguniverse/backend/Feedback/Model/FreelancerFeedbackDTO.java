@@ -4,6 +4,7 @@ import lombok.Data;
 
 @Data
 public class FreelancerFeedbackDTO {
+
     private int rating;
     private String feedback;
     private String employerId;

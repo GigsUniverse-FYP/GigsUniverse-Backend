@@ -3,10 +3,13 @@ package com.giguniverse.backend.SupportTicket.Service;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Base64;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -17,8 +20,12 @@ import com.giguniverse.backend.Auth.Model.Freelancer;
 import com.giguniverse.backend.Auth.Repository.EmployerRepository;
 import com.giguniverse.backend.Auth.Repository.FreelancerRepository;
 import com.giguniverse.backend.Auth.Session.AuthUtil;
+import com.giguniverse.backend.Profile.Repository.AdminProfileRepository;
+import com.giguniverse.backend.Profile.Repository.EmployerProfileRepository;
+import com.giguniverse.backend.Profile.Repository.FreelancerProfileRepository;
 import com.giguniverse.backend.SupportTicket.Model.SupportTicket;
 import com.giguniverse.backend.SupportTicket.Model.SupportTicketAttachment;
+import com.giguniverse.backend.SupportTicket.Model.TicketInfoAttachmentDTO;
 import com.giguniverse.backend.SupportTicket.Repository.SupportTicketAttachmentRepository;
 import com.giguniverse.backend.SupportTicket.Repository.SupportTicketRepository;
 
@@ -33,6 +40,17 @@ public class SupportTicketService {
     private SupportTicketRepository ticketRepo;
     @Autowired
     private SupportTicketAttachmentRepository attachmentRepo;
+
+    @Autowired
+    private FreelancerProfileRepository freelancerProfileRepo;
+    
+    @Autowired
+    private EmployerProfileRepository employerProfileRepo;
+
+    @Autowired
+    private AdminProfileRepository adminProfileRepo;
+
+    
 
     public Map<String, Object> getCurrentUserInfo() {
         String userId = AuthUtil.getUserId();
@@ -150,4 +168,118 @@ public class SupportTicketService {
 
         return result;
     }
+
+    public List<TicketInfoAttachmentDTO> getAllTicketsWithAttachments() {
+        List<SupportTicket> tickets = ticketRepo.findAll();
+
+        Map<String, Integer> statusOrder = Map.of(
+            "open", 1,
+            "in_progress", 2,
+            "resolved", 3,
+            "closed", 4
+        );
+
+        return tickets.stream()
+                .map(ticket -> {
+                    String creatorName = null;
+                    if ("freelancer".equalsIgnoreCase(ticket.getCreatorType())) {
+                        creatorName = freelancerProfileRepo.findByFreelancer_FreelancerUserId(ticket.getCreatorId())
+                                .map(f -> f.getFullName())
+                                .orElse("Unknown Freelancer");
+                    } else if ("employer".equalsIgnoreCase(ticket.getCreatorType())) {
+                        creatorName = employerProfileRepo.findByEmployer_EmployerUserId(ticket.getCreatorId())
+                                .map(e -> e.getFullName())
+                                .orElse("Unknown Employer");
+                    }
+
+                    String adminName = null;
+                    if (ticket.getAdminId() != null) {
+                        adminName = adminProfileRepo.findByAdmin_AdminUserId(ticket.getAdminId())
+                                .map(a -> a.getFullName())
+                                .orElse("Unassigned");
+                    }
+
+                    List<SupportTicketAttachment> attachments =
+                            attachmentRepo.findBySupportTicketId(ticket.getSupportTicketId());
+
+                    return TicketInfoAttachmentDTO.builder()
+                            .ticket(
+                                    TicketInfoAttachmentDTO.SupportTicketDTO.builder()
+                                            .supportTicketId(ticket.getSupportTicketId())
+                                            .ticketSubject(ticket.getTicketSubject())
+                                            .ticketCategory(ticket.getTicketCategory())
+                                            .ticketDescription(ticket.getTicketDescription())
+                                            .ticketStatus(ticket.getTicketStatus())
+                                            .ticketPriority(ticket.getTicketPriority())
+                                            .ticketCreationDate(ticket.getTicketCreationDate())
+                                            .ticketUpdateDate(ticket.getTicketUpdateDate())
+                                            .creatorId(ticket.getCreatorId())
+                                            .creatorType(ticket.getCreatorType())
+                                            .creatorName(creatorName)
+                                            .adminId(ticket.getAdminId())
+                                            .adminName(adminName)
+                                            .build()
+                            )
+                            .attachments(
+                                    attachments.stream()
+                                            .map(attachment ->
+                                                    TicketInfoAttachmentDTO.TicketAttachmentDTO.builder()
+                                                            .id(attachment.getId())
+                                                            .supportTicketId(attachment.getSupportTicketId())
+                                                            .files(
+                                                                    attachment.getFiles().stream()
+                                                                            .map(file ->
+                                                                                    TicketInfoAttachmentDTO.FileDataDTO.builder()
+                                                                                            .fileName(file.getFileName())
+                                                                                            .fileBase64(Base64.getEncoder().encodeToString(file.getFileBytes()))
+                                                                                            .contentType(file.getContentType())
+                                                                                            .build()
+                                                                            ).collect(Collectors.toList())
+                                                            )
+                                                            .build()
+                                            ).collect(Collectors.toList())
+                            )
+                            .build();
+                })
+                .sorted(Comparator.comparingInt(
+                    dto -> statusOrder.getOrDefault(dto.getTicket().getTicketStatus().toLowerCase(), 999)
+                ))
+                .collect(Collectors.toList());
+        }
+
+
+    public Map<String, String> getCurrentAdmin() {
+        String currentAdminId = AuthUtil.getUserId();
+
+        return adminProfileRepo.findByAdmin_AdminUserId(currentAdminId)
+                .map(admin -> Map.of(
+                        "adminId", currentAdminId,
+                        "adminFullName", admin.getFullName()
+                ))
+                .orElseThrow(() -> new RuntimeException("Admin not found for id: " + currentAdminId));
+    }
+
+    public void assignTicket(Integer ticketId, String adminId) {
+        SupportTicket ticket = ticketRepo.findById(ticketId)
+                .orElseThrow(() -> new RuntimeException("Ticket not found"));
+
+        // check if admin exists
+        adminProfileRepo.findByAdmin_AdminUserId(adminId)
+                .orElseThrow(() -> new RuntimeException("Admin not found"));
+
+        ticket.setAdminId(adminId);
+        ticket.setTicketStatus("in_progress");
+        ticket.setTicketUpdateDate(LocalDateTime.now());
+
+        ticketRepo.save(ticket);
+    }
+
+    public SupportTicket updateStatus(String ticketId, String newStatus) {
+        SupportTicket ticket = ticketRepo.findById(Integer.valueOf(ticketId))
+                .orElseThrow(() -> new IllegalArgumentException("Ticket not found"));
+
+        ticket.setTicketStatus(newStatus);
+        return ticketRepo.save(ticket);
+    }
+
 }

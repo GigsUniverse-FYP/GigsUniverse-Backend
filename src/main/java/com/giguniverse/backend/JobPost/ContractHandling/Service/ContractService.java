@@ -1,10 +1,12 @@
 package com.giguniverse.backend.JobPost.ContractHandling.Service;
 
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -20,6 +22,7 @@ import com.giguniverse.backend.Feedback.Service.EmployerFeedbackService;
 import com.giguniverse.backend.Feedback.Service.FreelancerFeedbackService;
 import com.giguniverse.backend.JobPost.ApplyJob.Repository.JobApplicationRepository;
 import com.giguniverse.backend.JobPost.ContractHandling.Model.Contract;
+import com.giguniverse.backend.JobPost.ContractHandling.Model.ContractAdminDetailsDTO;
 import com.giguniverse.backend.JobPost.ContractHandling.Model.ContractDetailsDTO;
 import com.giguniverse.backend.JobPost.ContractHandling.Repository.ContractRepository;
 import com.giguniverse.backend.JobPost.CreateJobPost.model.JobPost;
@@ -354,12 +357,23 @@ public class ContractService {
 
         Contract contract = contractOpt.get();
         contract.setCancellationReason(reason);
+        contract.setApproveEarlyCancellation(null);
         return contractRepository.save(contract);
     }
 
     public boolean hasCancellationReason(int contractId) {
         return contractRepository.findById(contractId)
-                .map(contract -> contract.getCancellationReason() != null && !contract.getCancellationReason().isEmpty())
+                .map(contract -> {
+                    String reason = contract.getCancellationReason();
+                    String approval = contract.getApproveEarlyCancellation();
+
+                    if (reason != null && !reason.isEmpty() && approval != null && !approval.isEmpty()) {
+                        return false;
+                    } else if (reason != null && !reason.isEmpty() && (approval == null || approval.isEmpty())) {
+                        return true; 
+                    }
+                    return false; 
+                })
                 .orElse(false);
     }
 
@@ -412,4 +426,69 @@ public class ContractService {
 
         employerFeedbackService.saveEmployerFeedback(feedback);
     }
+
+
+    public List<ContractAdminDetailsDTO> getAllContractsWithDetails() {
+        List<Contract> contracts = contractRepository.findAll();
+
+        List<ContractAdminDetailsDTO> dtoList = contracts.stream().map(contract -> {
+            JobPost job = jobPostRepository.findById(Integer.parseInt(contract.getJobId())).orElse(null);
+            EmployerProfile employer = employerProfileRepository.findByEmployer_EmployerUserId(contract.getEmployerId()).orElse(null);
+            FreelancerProfile freelancer = freelancerProfileRepository.findByFreelancer_FreelancerUserId(contract.getFreelancerId()).orElse(null);
+
+            return ContractAdminDetailsDTO.builder()
+                    .contractId(contract.getContractId())
+                    .agreedPayRatePerHour(contract.getAgreedPayRatePerHour())
+                    .contractStatus(contract.getContractStatus())
+                    .cancellationReason(contract.getCancellationReason())
+                    .approveEarlyCancellation(contract.getApproveEarlyCancellation())
+                    .hourPerWeek(contract.getHourPerWeek())
+                    .contractCreationDate(contract.getContractCreationDate())
+                    .contractStartDate(contract.getContractStartDate())
+                    .contractEndDate(contract.getContractEndDate())
+                    .freelancerFeedback(contract.getFreelancerFeedback())
+                    .jobId(contract.getJobId())
+                    .jobTitle(job != null ? job.getJobTitle() : null)
+                    .companyName(job != null ? job.getCompanyName() : null)
+                    .employerId(contract.getEmployerId())
+                    .employerName(employer != null ? employer.getFullName() : null)
+                    .employerEmail(employer != null ? employer.getEmail() : null)
+                    .employerCompany(job != null ? job.getCompanyName() : null)
+                    .freelancerId(contract.getFreelancerId())
+                    .freelancerName(freelancer != null ? freelancer.getFullName() : null)
+                    .freelancerEmail(freelancer != null ? freelancer.getEmail() : null)
+                    .build();
+        }).collect(Collectors.toList());
+
+        Map<String, Integer> statusOrder = Map.of(
+                "active", 1,
+                "pending", 2,
+                "upcoming", 3,
+                "completed", 4,
+                "cancelled", 5,
+                "rejected", 6
+        );
+
+        dtoList.sort(Comparator.comparingInt(dto ->
+                statusOrder.getOrDefault(dto.getContractStatus().toLowerCase(), Integer.MAX_VALUE)
+        ));
+
+        return dtoList;
+    }
+
+    public Contract approveCancellation(int contractId) {
+        return contractRepository.findById(contractId).map(contract -> {
+            contract.setApproveEarlyCancellation("approved");
+            contract.setContractStatus("cancelled");
+            return contractRepository.save(contract);
+        }).orElseThrow(() -> new RuntimeException("Contract not found with id: " + contractId));
+    }
+
+    public Contract rejectCancellation(int contractId) {
+        return contractRepository.findById(contractId).map(contract -> {
+            contract.setApproveEarlyCancellation("rejected");
+            return contractRepository.save(contract);
+        }).orElseThrow(() -> new RuntimeException("Contract not found with id: " + contractId));
+    }
+
 }

@@ -28,7 +28,8 @@ public class FreelancerProfileDataResponse {
     private Integer preferredPayRate;
     private Boolean openToWork;
     private Boolean premiumStatus;
-
+    private Double averageRating;
+    private Integer totalRatings;
 
     // MongoDB Profile Fields
     private List<JobExperience> jobExperiences;

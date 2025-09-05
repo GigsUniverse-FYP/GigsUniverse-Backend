@@ -9,12 +9,13 @@ import java.util.List;
 @Repository
 public interface FreelancerFeedbackRepository extends JpaRepository<FreelancerFeedback, Integer> {
 
-    // Optional: get all feedbacks for a specific freelancer
     List<FreelancerFeedback> findByFreelancerId(String freelancerId);
 
-    // Optional: get feedbacks for a specific contract
     List<FreelancerFeedback> findByContractId(int contractId);
 
-    // Optional: get feedbacks for a specific job
     List<FreelancerFeedback> findByJobId(int jobId);
+
+    List<FreelancerFeedback> findByFreelancerIdAndContractId(String freelancerId, int contractId);
+
+ 
 }

@@ -106,4 +106,28 @@ public class AdminProfileService {
             response.setLanguageProficiency(pgProfile.getLanguageProficiency());
         return response;
     }
+
+
+    public AdminProfileDataResponse getViewFullAdminProfile(String userId) {
+        if (userId == null) {
+            throw new RuntimeException("User not authenticated");
+        }
+
+        AdminProfile pgProfile = pgProfileRepo.findByAdmin_AdminUserId(userId)
+                .orElseThrow(() -> new RuntimeException("Admin profile not found"));
+
+        AdminProfileDataResponse response = new AdminProfileDataResponse();
+            response.setAdminProfileId(userId);
+            response.setFullName(pgProfile.getFullName());
+            response.setUsername(pgProfile.getUsername());
+            response.setGender(pgProfile.getGender());
+            response.setDob(pgProfile.getDob().toString());
+            response.setEmail(pgProfile.getEmail());
+            response.setPhone(pgProfile.getPhone());
+            response.setLocation(pgProfile.getLocation());
+            response.setProfilePicture(Base64.getEncoder().encodeToString(pgProfile.getProfilePicture()));
+            response.setProfilePictureMimeType(pgProfile.getProfilePictureMimeType());
+            response.setLanguageProficiency(pgProfile.getLanguageProficiency());
+        return response;
+    }
 }

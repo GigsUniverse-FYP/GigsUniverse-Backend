@@ -22,6 +22,9 @@ public class EmployerProfileDataResponse {
     private String languageProficiency;
     private Boolean openToHire;
     private Boolean premiumStatus;
+    private Double averageRating;
+    private Integer totalRatings;
+
 
 
     // MongoDB Profile Fields

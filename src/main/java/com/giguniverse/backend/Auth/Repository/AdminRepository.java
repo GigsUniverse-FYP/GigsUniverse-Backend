@@ -17,6 +17,7 @@ public interface AdminRepository extends JpaRepository<Admin, String> {
     boolean existsByAdminUserId(String adminUserId);
     Optional<Admin> findByEmail(String email);
     Optional<Admin> findByAdminUserId(String adminUserId);
+    long count();
 
     @Transactional
     @Modifying

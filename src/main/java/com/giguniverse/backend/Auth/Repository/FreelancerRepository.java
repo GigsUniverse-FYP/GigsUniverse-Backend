@@ -1,6 +1,7 @@
 package com.giguniverse.backend.Auth.Repository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import jakarta.transaction.Transactional;
@@ -18,6 +19,8 @@ public interface FreelancerRepository extends JpaRepository<Freelancer, String> 
     Optional<Freelancer> findByEmailConfirmationToken(String token);
     Optional<Freelancer> findByFreelancerUserId(String freelancerUserId);
     Optional<Freelancer> findByStripeAccountId(String stripeAccountId);
+    long count();
+    List<Freelancer> findByRegistrationDateBetween(LocalDateTime start, LocalDateTime end);
 
     @Query("SELECT f.completedOnboarding FROM Freelancer f WHERE f.freelancerUserId = :freelancerUserId")
     Optional<Boolean> isOnboarded(@Param("freelancerUserId") String freelancerUserId);

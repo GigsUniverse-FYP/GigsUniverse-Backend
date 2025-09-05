@@ -15,6 +15,8 @@ import org.springframework.http.MediaType;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.web.bind.annotation.GetMapping;
+
 
 @CrossOrigin
 @RestController
@@ -65,6 +67,13 @@ public class AdminProfileController {
         AdminProfileDataResponse response = adminProfileService.getFullAdminProfile();
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/view-profile/{userId}")
+    public ResponseEntity<?> getViewProfile(@PathVariable String userId) {
+        AdminProfileDataResponse response = adminProfileService.getViewFullAdminProfile(userId);
+        return ResponseEntity.ok(response);
+    }
+    
 
 }
 

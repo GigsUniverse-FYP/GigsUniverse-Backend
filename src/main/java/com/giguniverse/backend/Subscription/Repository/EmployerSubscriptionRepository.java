@@ -1,5 +1,6 @@
 package com.giguniverse.backend.Subscription.Repository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -21,4 +22,6 @@ public interface EmployerSubscriptionRepository extends JpaRepository<EmployerSu
     List<EmployerSubscription> findAllByEmployerUserId(String userId);
 
     List<EmployerSubscription> findAllByEmployerUserIdOrderByCreatedAtDesc(String userId);
+
+    List<EmployerSubscription> findByCurrentPeriodStartBetween(Instant start, Instant end);
 }

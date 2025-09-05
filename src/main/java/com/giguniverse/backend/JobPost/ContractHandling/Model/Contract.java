@@ -1,19 +1,20 @@
 package com.giguniverse.backend.JobPost.ContractHandling.Model;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.NoArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+
 
 import java.util.Date;
 
 import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
 
-@Data 
 @NoArgsConstructor
 @AllArgsConstructor 
 @Builder
 @Entity
+@Data
 @Table(name = "contract")
 public class Contract {
     @Id

@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.giguniverse.backend.Auth.Session.AuthUtil;
 import com.giguniverse.backend.Profile.Model.DTO.FreelancerProfileDataResponse;
 import com.giguniverse.backend.Profile.Model.DTO.FreelancerProfileFormData;
+import com.giguniverse.backend.Profile.Model.DTO.JobHistoryRecordDTO;
 import com.giguniverse.backend.Profile.Service.FreelancerProfileService;
 import org.springframework.http.MediaType;
 
@@ -73,5 +74,23 @@ public class FreelancerProfileController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/job-history")
+    public List<JobHistoryRecordDTO> getJobHistory() {
+        return freelancerProfileService.getFreelancerJobHistory();
+    }
+
+    @GetMapping("/view-freelancer-profile/{userId}")
+    public ResponseEntity<FreelancerProfileDataResponse> getViewProfile(@PathVariable String userId) {
+        FreelancerProfileDataResponse response = freelancerProfileService.getViewFreelancerProfile(userId);
+        if (response == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/view-job-history/{userId}")
+    public List<JobHistoryRecordDTO> getViewJobHistory(@PathVariable String userId) {
+        return freelancerProfileService.getViewFreelancerJobHistory(userId);
+    }
 }
 

@@ -17,5 +17,7 @@ public interface EmployerFeedbackRepository extends JpaRepository<EmployerFeedba
 
     // Optional: get feedbacks for a specific job
     List<EmployerFeedback> findByJobId(int jobId);
+
+    List<EmployerFeedback> findByEmployerIdAndFreelancerIdAndContractId(String employerId, String freelancerId, int contractId);
 }
 

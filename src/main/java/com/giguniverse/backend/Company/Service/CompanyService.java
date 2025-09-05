@@ -14,6 +14,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -25,6 +27,7 @@ import com.giguniverse.backend.Company.Model.Company;
 import com.giguniverse.backend.Company.Model.CompanyAttachment;
 import com.giguniverse.backend.Company.Model.CompanyImage;
 import com.giguniverse.backend.Company.Model.CompanyInfoDTO;
+import com.giguniverse.backend.Company.Model.CompanyResponseDTO;
 import com.giguniverse.backend.Company.Model.CompanyVideo;
 import com.giguniverse.backend.Company.Model.EmployeeDTO;
 import com.giguniverse.backend.Company.Model.ProfileCompanyDTO;
@@ -35,7 +38,11 @@ import com.giguniverse.backend.Company.Repository.CompanyImageRepository;
 import com.giguniverse.backend.Company.Repository.CompanyRepository;
 import com.giguniverse.backend.Company.Repository.CompanyVideoRepository;
 import com.giguniverse.backend.Profile.Model.EmployerProfile;
+import com.giguniverse.backend.Profile.Repository.AdminProfileRepository;
+import com.giguniverse.backend.Profile.Repository.EmployerProfileRepository;
 
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 import jakarta.transaction.Transactional;
 
 @Service
@@ -51,6 +58,11 @@ public class CompanyService {
         private CompanyVideoRepository companyVideoRepository;
         @Autowired
         private EmployerRepository employerRepository;
+
+        @Autowired
+        private EmployerProfileRepository employerProfileRepository;
+        @Autowired
+        private AdminProfileRepository adminProfileRepository;
 
         public Company createCompany(
                         String companyName, String businessRegistrationNumber, String registrationCountry,
@@ -269,11 +281,10 @@ public class CompanyService {
                         List<MultipartFile> companyImages,
                         MultipartFile companyVideo,
                         boolean deleteImages,
-                        boolean deleteVideo
-                        ) throws IOException {
+                        boolean deleteVideo) throws IOException {
                 int companyId = Integer.parseInt(fields.get("companyId"));
 
-                // --- 1) Update Postgres ---
+                // Update Postgres
                 Company company = companyRepository.findById(companyId)
                                 .orElseThrow(() -> new IllegalArgumentException("Company not found: " + companyId));
 
@@ -305,7 +316,7 @@ public class CompanyService {
 
                 companyRepository.save(company);
 
-                // --- 2) Handle Mongo attachments ---
+                // Handle Mongo attachments
                 CompanyAttachment existingAttachment = companyAttachmentRepository.findByCompanyId(companyId)
                                 .orElse(null);
 
@@ -323,7 +334,7 @@ public class CompanyService {
                 // keep existing cert & license
                 companyAttachmentRepository.save(existingAttachment);
 
-                // --- 3) Reset + Save Images ---
+                // Reset + Save Images
                 if (deleteImages) {
                         companyImageRepository.deleteByCompanyId(companyId);
                 } else if (companyImages != null && !companyImages.isEmpty()) {
@@ -331,37 +342,37 @@ public class CompanyService {
                         companyImageRepository.deleteByCompanyId(companyId);
                         List<CompanyImage.FileData> imgs = new ArrayList<>();
                         for (MultipartFile img : companyImages) {
-                        if (img != null && !img.isEmpty()) {
-                                imgs.add(CompanyImage.FileData.builder()
-                                        .fileName(img.getOriginalFilename())
-                                        .contentType(img.getContentType())
-                                        .fileBytes(img.getBytes())
-                                        .build());
-                        }
+                                if (img != null && !img.isEmpty()) {
+                                        imgs.add(CompanyImage.FileData.builder()
+                                                        .fileName(img.getOriginalFilename())
+                                                        .contentType(img.getContentType())
+                                                        .fileBytes(img.getBytes())
+                                                        .build());
+                                }
                         }
                         if (!imgs.isEmpty()) {
-                        CompanyImage imageDoc = CompanyImage.builder()
-                                .companyId(companyId)
-                                .companyImages(imgs)
-                                .build();
-                        companyImageRepository.save(imageDoc);
+                                CompanyImage imageDoc = CompanyImage.builder()
+                                                .companyId(companyId)
+                                                .companyImages(imgs)
+                                                .build();
+                                companyImageRepository.save(imageDoc);
                         }
                 }
 
-                // --- 4) Reset + Save Video ---
+                // Reset + Save Video
                 if (deleteVideo) {
                         companyVideoRepository.deleteByCompanyId(companyId);
                 } else if (companyVideo != null && !companyVideo.isEmpty()) {
                         // replace
                         companyVideoRepository.deleteByCompanyId(companyId);
                         CompanyVideo videoDoc = CompanyVideo.builder()
-                                .companyId(companyId)
-                                .companyVideo(CompanyVideo.FileData.builder()
-                                        .fileName(companyVideo.getOriginalFilename())
-                                        .contentType(companyVideo.getContentType())
-                                        .fileBytes(companyVideo.getBytes())
-                                        .build())
-                                .build();
+                                        .companyId(companyId)
+                                        .companyVideo(CompanyVideo.FileData.builder()
+                                                        .fileName(companyVideo.getOriginalFilename())
+                                                        .contentType(companyVideo.getContentType())
+                                                        .fileBytes(companyVideo.getBytes())
+                                                        .build())
+                                        .build();
                         companyVideoRepository.save(videoDoc);
                 }
         }
@@ -377,11 +388,10 @@ public class CompanyService {
                                 .build();
         }
 
-
         @Transactional
         public void leaveCompany(int companyId, String userId) {
                 Company company = companyRepository.findById(companyId)
-                        .orElseThrow(() -> new IllegalArgumentException("Company not found: " + companyId));
+                                .orElseThrow(() -> new IllegalArgumentException("Company not found: " + companyId));
 
                 String employerInvolved = company.getEmployerInvolved();
                 if (employerInvolved == null || employerInvolved.isBlank()) {
@@ -390,7 +400,7 @@ public class CompanyService {
 
                 // Split CSV into list
                 List<String> employers = new ArrayList<>(
-                        Arrays.asList(employerInvolved.split(",")));
+                                Arrays.asList(employerInvolved.split(",")));
 
                 // Remove current user
                 boolean removed = employers.removeIf(e -> e.trim().equals(userId));
@@ -416,10 +426,11 @@ public class CompanyService {
                 for (Company company : companies) {
                         String employerInvolved = company.getEmployerInvolved();
                         if (employerInvolved != null && !employerInvolved.isBlank()) {
-                        boolean found = Arrays.stream(employerInvolved.split(","))
-                                .map(String::trim)
-                                .anyMatch(id -> id.equalsIgnoreCase(userId));
-                        if (found) return true;
+                                boolean found = Arrays.stream(employerInvolved.split(","))
+                                                .map(String::trim)
+                                                .anyMatch(id -> id.equalsIgnoreCase(userId));
+                                if (found)
+                                        return true;
                         }
                 }
 
@@ -431,7 +442,8 @@ public class CompanyService {
                 // Check if the user is a creator
                 Company createdCompany = companyRepository.findByCreatorId(userId).stream().findFirst().orElse(null);
                 if (createdCompany != null) {
-                        return new ProfileCompanyDTO(createdCompany.getCompanyId(), createdCompany.getCompanyName(), "creator");
+                        return new ProfileCompanyDTO(createdCompany.getCompanyId(), createdCompany.getCompanyName(),
+                                        "creator");
                 }
 
                 // Check if the user is an employer
@@ -439,16 +451,182 @@ public class CompanyService {
                 for (Company company : allCompanies) {
                         String employerInvolved = company.getEmployerInvolved();
                         if (employerInvolved != null && !employerInvolved.isBlank()) {
-                        boolean involved = Arrays.stream(employerInvolved.split(","))
-                                .map(String::trim)
-                                .anyMatch(id -> id.equalsIgnoreCase(userId));
-                        if (involved) {
-                                return new ProfileCompanyDTO(company.getCompanyId(), company.getCompanyName(), "employer");
-                        }
+                                boolean involved = Arrays.stream(employerInvolved.split(","))
+                                                .map(String::trim)
+                                                .anyMatch(id -> id.equalsIgnoreCase(userId));
+                                if (involved) {
+                                        return new ProfileCompanyDTO(company.getCompanyId(), company.getCompanyName(),
+                                                        "employer");
+                                }
                         }
                 }
 
                 return null;
         }
 
+        public ProfileCompanyDTO getViewUserCompany(String userId) {
+                Company createdCompany = companyRepository.findByCreatorId(userId).stream().findFirst().orElse(null);
+                if (createdCompany != null) {
+                        return new ProfileCompanyDTO(createdCompany.getCompanyId(), createdCompany.getCompanyName(),
+                                        "creator");
+                }
+
+                List<Company> allCompanies = companyRepository.findAll();
+                for (Company company : allCompanies) {
+                        String employerInvolved = company.getEmployerInvolved();
+                        if (employerInvolved != null && !employerInvolved.isBlank()) {
+                                boolean involved = Arrays.stream(employerInvolved.split(","))
+                                                .map(String::trim)
+                                                .anyMatch(id -> id.equalsIgnoreCase(userId));
+                                if (involved) {
+                                        return new ProfileCompanyDTO(company.getCompanyId(), company.getCompanyName(),
+                                                        "employer");
+                                }
+                        }
+                }
+
+                return null;
+        }
+
+        public VerifiedCompanyDTO getVerifiedCompanyById(String companyId) {
+                return companyRepository.findById(Integer.parseInt(companyId))
+                        .filter(company -> "verified".equals(company.getCompanyStatus())) // ensure it's verified
+                        .map(company -> VerifiedCompanyDTO.builder()
+                                .company(company)
+                                .attachment(companyAttachmentRepository.findByCompanyId(company.getCompanyId()).orElse(null))
+                                .image(companyImageRepository.findByCompanyId(company.getCompanyId()).orElse(null))
+                                .video(companyVideoRepository.findByCompanyId(company.getCompanyId()).orElse(null))
+                                .build()
+                        )
+                        .orElse(null); 
+        }
+
+        public List<CompanyResponseDTO> getAllCompaniesWithAttachments() {
+                List<Company> companies = companyRepository.findAll();
+
+                return companies.stream().map(company -> {
+                CompanyResponseDTO.CompanyResponseDTOBuilder dto = CompanyResponseDTO.builder()
+                        .companyId(company.getCompanyId())
+                        .companyName(company.getCompanyName())
+                        .businessRegistrationNumber(company.getBusinessRegistrationNumber())
+                        .registrationCountry(company.getRegistrationCountry())
+                        .registrationDate(company.getRegistrationDate())
+                        .industryType(company.getIndustryType())
+                        .companySize(company.getCompanySize())
+                        .companyDescription(company.getCompanyDescription())
+                        .registeredCompanyAddress(company.getRegisteredCompanyAddress())
+                        .businessPhoneNumber(company.getBusinessPhoneNumber())
+                        .businessEmail(company.getBusinessEmail())
+                        .officialWebsiteUrl(company.getOfficialWebsiteUrl())
+                        .taxNumber(company.getTaxNumber())
+                        .companyStatus(company.getCompanyStatus())
+                        .creatorId(company.getCreatorId())
+                        .approvedBy(company.getApprovedBy())
+                        .employerInvolved(company.getEmployerInvolved());
+
+                employerProfileRepository.findByEmployer_EmployerUserId(company.getCreatorId())
+                        .ifPresent(employer -> dto.creatorName(employer.getFullName()));
+
+                if (company.getApprovedBy() != null) {
+                        adminProfileRepository.findByAdmin_AdminUserId(company.getApprovedBy())
+                                .ifPresent(admin -> dto.approvedByName(admin.getFullName()));
+                }
+
+                companyAttachmentRepository.findByCompanyId(company.getCompanyId()).ifPresent(attachment -> {
+                        dto.companyLogo(toDTO(attachment.getCompanyLogo()));
+                        dto.companyCert(toDTO(attachment.getCompanyCert()));
+                        dto.businessLicense(toDTO(attachment.getBusinessLicense()));
+                });
+
+                return dto.build();
+                }).collect(Collectors.toList());
+    }
+
+    private CompanyResponseDTO.FileDataDTO toDTO(CompanyAttachment.FileData fileData) {
+        if (fileData == null) return null;
+        return CompanyResponseDTO.FileDataDTO.builder()
+                .fileName(fileData.getFileName())
+                .fileBytes("data:" + fileData.getContentType() + ";base64," +
+                        Base64.getEncoder().encodeToString(fileData.getFileBytes()))
+                .contentType(fileData.getContentType())
+                .build();
+    }
+
+
+        @Autowired
+        JavaMailSender mailSender;
+
+        public void notifyCompanyStatus(Company company, String reason) {
+                System.out.println("notifyCompanyStatus called for companyId: " + company.getCompanyId());
+
+                employerProfileRepository.findByEmployer_EmployerUserId(company.getCreatorId())
+                        .ifPresentOrElse(creator -> {
+                        String creatorEmail = creator.getEmployer().getEmail();
+                        String creatorName = creator.getEmployer().getProfile().getFullName();
+
+                        try {
+                                MimeMessage message = mailSender.createMimeMessage();
+                                MimeMessageHelper helper = new MimeMessageHelper(message, true);
+
+                                String body = "<div style='font-family:Arial,sans-serif;font-size:14px;color:#333;'>"
+                                + "<p>Dear " + creatorName + ",</p>"
+                                + "<p>The status of your company <strong>" + company.getCompanyName() + "</strong> has been updated.</p>"
+                                + "<p><strong>New Status:</strong> " + capitalize(company.getCompanyStatus()) + "</p>"
+                                + (reason != null && !reason.isBlank() ? "<p><strong>Reason:</strong> " + reason + "</p>" : "")
+                                + "<br>"
+                                + "<p>Please login to your account to view more details.</p>"
+                                + "<br>"
+                                + "<p>Regards,<br>GigsUniverse Team</p>"
+                                + "</div>";
+
+                                helper.setFrom("admin@gigsuniverse.studio");
+                                helper.setTo(creatorEmail);
+                                helper.setSubject("Company Status Updated - GigsUniverse");
+                                helper.setText(body, true);
+
+                                System.out.println("Sending email to: " + creatorEmail);
+                                mailSender.send(message);
+                                System.out.println("Email sent successfully!");
+
+                        } catch (MessagingException e) {
+                                System.err.println("Failed to send email to: " + creatorEmail);
+                                e.printStackTrace();
+                        }
+
+                        }, () -> System.err.println("Creator not found for ID: " + company.getCreatorId()));
+                }
+
+
+        private String capitalize(String str) {
+                if (str == null || str.isBlank()) return str;
+                return str.substring(0, 1).toUpperCase() + str.substring(1).toLowerCase();
+        }
+
+     public Company updateCompanyStatus(int companyId, String newStatus, String reason, String adminId) {
+        Company company = companyRepository.findById(companyId)
+                .orElseThrow(() -> new RuntimeException("Company not found"));
+
+        switch (newStatus.toLowerCase()) {
+                case "terminated" -> {
+                company.setCompanyStatus("terminated");
+                company.setApprovedBy(adminId);
+                companyRepository.save(company);
+                notifyCompanyStatus(company, reason);
+                }
+                case "verified" -> {
+                company.setCompanyStatus("verified");
+                company.setApprovedBy(adminId);
+                companyRepository.save(company);
+
+                }
+                case "pending" -> {
+                company.setCompanyStatus("pending");
+                company.setApprovedBy(null);
+                companyRepository.save(company);
+                }
+                default -> throw new IllegalArgumentException("Invalid status: " + newStatus);
+        }
+
+                return company;
+        }
 }

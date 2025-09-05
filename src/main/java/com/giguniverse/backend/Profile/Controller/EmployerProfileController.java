@@ -10,6 +10,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -18,8 +19,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.giguniverse.backend.Auth.Session.AuthUtil;
+
 import com.giguniverse.backend.Profile.Model.DTO.EmployerProfileDataResponse;
 import com.giguniverse.backend.Profile.Model.DTO.EmployerProfileFormData;
+import com.giguniverse.backend.Profile.Model.DTO.FreelancerFeedbackDTO;
 import com.giguniverse.backend.Profile.Service.EmployerProfileService;
 
 @CrossOrigin
@@ -72,5 +75,24 @@ public class EmployerProfileController {
         return ResponseEntity.ok(response);
     }
 
+   @GetMapping("/freelancer-feedback")
+    public ResponseEntity<List<FreelancerFeedbackDTO>> getFreelancerFeedback() {
+        List<FreelancerFeedbackDTO> feedbackList = employerProfileService.getFreelancerFeedbackForEmployer();
+        return ResponseEntity.ok(feedbackList);
+    }
+
+    @GetMapping("/view-employer-profile/{userId}")
+    public ResponseEntity<EmployerProfileDataResponse> getViewEmployerProfile(@PathVariable String userId) {
+        EmployerProfileDataResponse response = employerProfileService.getViewFullEmployerProfile(userId);
+        if (response == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/view-employer-feedback/{userId}")
+    public List<FreelancerFeedbackDTO> getViewEmployerFeedback(@PathVariable String userId) {
+        return employerProfileService.getViewFreelancerFeedbackForEmployer(userId);
+    }
 
 }

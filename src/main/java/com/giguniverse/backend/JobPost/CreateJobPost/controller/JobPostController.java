@@ -87,4 +87,13 @@ public class JobPostController {
         List<JobPost> jobs = jobPostService.getAllActiveJobs();
         return ResponseEntity.ok(jobs);
     }
+
+    @PostMapping("/remove-job/{jobId}")
+    public ResponseEntity<?> removeJob(
+            @PathVariable int jobId,
+            @RequestBody String reason) {
+
+        jobPostService.removeJob(jobId, reason);
+        return ResponseEntity.ok("Job removed successfully and email sent.");
+    }
 }

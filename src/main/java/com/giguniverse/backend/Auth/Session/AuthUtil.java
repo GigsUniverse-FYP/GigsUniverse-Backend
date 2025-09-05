@@ -7,6 +7,7 @@ import com.giguniverse.backend.Auth.JWT.JwtUserPrincipal;
 public class AuthUtil {
     public static JwtUserPrincipal getCurrentUser() {
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        System.out.println("DEBUG principal = " + principal.getClass() + " :: " + principal);
         if (principal instanceof JwtUserPrincipal) {
             return (JwtUserPrincipal) principal;
         }

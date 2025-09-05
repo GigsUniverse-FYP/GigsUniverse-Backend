@@ -1,6 +1,7 @@
 package com.giguniverse.backend.Auth.Repository;
 
 import java.time.LocalDateTime;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Repository;
 import com.giguniverse.backend.Auth.Model.Employer;
 
 
+
 @Repository
 public interface EmployerRepository extends JpaRepository<Employer, String> {
     boolean existsByEmail(String email);
@@ -19,6 +21,8 @@ public interface EmployerRepository extends JpaRepository<Employer, String> {
     Optional<Employer> findByEmail(String email);
     Optional<Employer> findByEmailConfirmationToken(String token);
     Optional<Employer> findByEmployerUserId(String employerUserId);
+    long count();
+    List<Employer> findByRegistrationDateBetween(LocalDateTime start, LocalDateTime end);
 
     List<Employer> findByCompletedOnboardingTrue();
 

@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -23,7 +24,9 @@ import org.springframework.web.multipart.MultipartFile;
 import com.giguniverse.backend.Auth.Session.AuthUtil;
 import com.giguniverse.backend.Company.Model.AvailableUserDTO;
 import com.giguniverse.backend.Company.Model.Company;
+import com.giguniverse.backend.Company.Model.CompanyResponseDTO;
 import com.giguniverse.backend.Company.Model.ProfileCompanyDTO;
+import com.giguniverse.backend.Company.Model.StatusUpdateRequest;
 import com.giguniverse.backend.Company.Model.UserInvolvementDTO;
 import com.giguniverse.backend.Company.Model.VerifiedCompanyDTO;
 import com.giguniverse.backend.Company.Service.CompanyService;
@@ -175,5 +178,54 @@ public class CompanyController {
         } else {
             return ResponseEntity.noContent().build();
         }
+    }
+
+    @GetMapping("/view-user-company/{userId}")
+    public ResponseEntity<ProfileCompanyDTO> getViewUserCompany(@PathVariable String userId) {
+        ProfileCompanyDTO companyInfo = companyService.getViewUserCompany(userId);
+
+        if (companyInfo != null) {
+            return ResponseEntity.ok(companyInfo);
+        } else {
+            return ResponseEntity.noContent().build();
+        }
+    }
+
+    @GetMapping("/get-company-info/{companyId}")
+    public ResponseEntity<VerifiedCompanyDTO> getCompanyInfo(@PathVariable String companyId) {
+        VerifiedCompanyDTO dto = companyService.getVerifiedCompanyById(companyId);
+        if (dto == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(dto);
+    }
+
+    @GetMapping("/admin-verification")
+    public ResponseEntity<List<CompanyResponseDTO>> getAllCompanies() {
+        return ResponseEntity.ok(companyService.getAllCompaniesWithAttachments());
+    }
+
+    @PutMapping("/{companyId}/status")
+    public ResponseEntity<Map<String, Object>> updateCompanyStatus(
+            @PathVariable int companyId,
+            @RequestBody StatusUpdateRequest request
+    ) {
+
+        String userId = AuthUtil.getUserId();
+
+        Company updatedCompany = companyService.updateCompanyStatus(
+                companyId,
+                request.getNewStatus(),
+                request.getReason(),
+                userId
+        );
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("companyId", updatedCompany.getCompanyId());
+        response.put("status", updatedCompany.getCompanyStatus());
+        response.put("approvedBy", updatedCompany.getApprovedBy());
+        response.put("reason", request.getReason() != null ? request.getReason() : "");
+
+        return ResponseEntity.ok(response);
     }
 }

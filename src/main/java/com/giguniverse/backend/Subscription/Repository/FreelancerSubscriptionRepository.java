@@ -1,5 +1,6 @@
 package com.giguniverse.backend.Subscription.Repository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -22,4 +23,6 @@ public interface FreelancerSubscriptionRepository extends JpaRepository<Freelanc
     List<FreelancerSubscription> findAllByFreelancerUserId(String userId);
 
     List<FreelancerSubscription> findAllByFreelancerUserIdOrderByCreatedAtDesc(String userId);
+
+    List<FreelancerSubscription> findByCurrentPeriodStartBetween(Instant start, Instant end);
 }

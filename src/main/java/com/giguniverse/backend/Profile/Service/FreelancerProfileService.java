@@ -7,17 +7,25 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import com.giguniverse.backend.Auth.Model.Freelancer;
 import com.giguniverse.backend.Auth.Repository.FreelancerRepository;
 import com.giguniverse.backend.Auth.Session.AuthUtil;
+import com.giguniverse.backend.Feedback.Repository.FreelancerFeedbackRepository;
+import com.giguniverse.backend.Feedback.Service.FreelancerFeedbackService;
+import com.giguniverse.backend.JobPost.ContractHandling.Model.Contract;
+import com.giguniverse.backend.JobPost.ContractHandling.Repository.ContractRepository;
+import com.giguniverse.backend.JobPost.CreateJobPost.model.JobPost;
+import com.giguniverse.backend.JobPost.CreateJobPost.repository.JobPostRepository;
+import com.giguniverse.backend.Profile.Model.EmployerProfile;
 import com.giguniverse.backend.Profile.Model.FreelancerProfile;
 import com.giguniverse.backend.Profile.Model.DTO.FreelancerProfileDataResponse;
 import com.giguniverse.backend.Profile.Model.DTO.FreelancerProfileFormData;
+import com.giguniverse.backend.Profile.Model.DTO.JobHistoryRecordDTO;
 import com.giguniverse.backend.Profile.Model.Mongo_Freelancer.FreelancerCertification;
 import com.giguniverse.backend.Profile.Model.Mongo_Freelancer.FreelancerEducation;
 import com.giguniverse.backend.Profile.Model.Mongo_Freelancer.FreelancerEducation.EducationItem;
@@ -25,6 +33,7 @@ import com.giguniverse.backend.Profile.Model.Mongo_Freelancer.FreelancerJobExper
 import com.giguniverse.backend.Profile.Model.Mongo_Freelancer.FreelancerJobExperience.JobExperienceItem;
 import com.giguniverse.backend.Profile.Model.Mongo_Freelancer.FreelancerPortfolio;
 import com.giguniverse.backend.Profile.Model.Mongo_Freelancer.FreelancerResume;
+import com.giguniverse.backend.Profile.Repository.EmployerProfileRepository;
 import com.giguniverse.backend.Profile.Repository.FreelancerProfileRepository;
 import com.giguniverse.backend.Profile.Repository.Mongo_Freelancer.FreelancerCertificationRepository;
 import com.giguniverse.backend.Profile.Repository.Mongo_Freelancer.FreelancerEducationRepository;
@@ -55,6 +64,20 @@ public class FreelancerProfileService {
         ));
     }
 
+    @Autowired
+    private FreelancerFeedbackService freelancerFeedbackService;
+
+    @Autowired
+    private ContractRepository contractRepository;
+
+    @Autowired
+    private JobPostRepository jobPostRepository;
+
+    @Autowired
+    private FreelancerFeedbackRepository freelancerFeedbackRepository;
+
+    @Autowired
+    private EmployerProfileRepository employerProfileRepository;
 
     private final FreelancerRepository freelancerRepo;
 
@@ -240,6 +263,8 @@ public class FreelancerProfileService {
         FreelancerProfile pgProfile = pgProfileRepo.findByFreelancer_FreelancerUserId(userId)
                 .orElseThrow(() -> new RuntimeException("Freelancer profile not found"));
 
+        FreelancerFeedbackService.FreelancerRatingResponse ratingData = freelancerFeedbackService.getFreelancerRating(userId);
+
         FreelancerProfileDataResponse response = new FreelancerProfileDataResponse();
             response.setFreelancerProfileId(userId);
             response.setFullName(pgProfile.getFullName());
@@ -261,6 +286,9 @@ public class FreelancerProfileService {
             response.setPreferredPayRate(pgProfile.getPreferredPayrate());
             response.setOpenToWork(pgProfile.getOpenToWork());
             response.setPremiumStatus(pgProfile.getPremiumStatus());
+            response.setAverageRating(ratingData.averageRating());
+            response.setTotalRatings(ratingData.totalRatings());
+
         // MongoDB section
 
         // 1. Resume
@@ -343,5 +371,211 @@ public class FreelancerProfileService {
         }
 
         return response;
+    }
+
+    
+    public List<JobHistoryRecordDTO> getFreelancerJobHistory() {
+        String freelancerId = AuthUtil.getUserId();
+        if (freelancerId == null) throw new RuntimeException("User not authenticated");
+
+        List<Contract> contracts = contractRepository.findByFreelancerId(freelancerId);
+
+        return contracts.stream().map(contract -> {
+
+            // Fetch JobPost
+            JobPost job = jobPostRepository.findById(Integer.parseInt(contract.getJobId()))
+                    .orElse(null);
+
+            // Fetch Employer Name
+            String employerName = employerProfileRepository
+                    .findByEmployer_EmployerUserId(contract.getEmployerId())
+                    .map(EmployerProfile::getFullName)
+                    .orElse("N/A");
+
+            // Fetch Feedback
+            var feedbackList = freelancerFeedbackRepository
+                    .findByFreelancerIdAndContractId(freelancerId, contract.getContractId());
+            Double rating = feedbackList.isEmpty() ? null : Double.valueOf(feedbackList.get(0).getRating());
+            String feedbackText = feedbackList.isEmpty() ? null : feedbackList.get(0).getFeedback();
+
+            return new JobHistoryRecordDTO(
+                    String.valueOf(contract.getContractId()),
+                    job != null ? job.getJobTitle() : "N/A",
+                    employerName,
+                    contract.getEmployerId(),
+                    job != null ? job.getCompanyName() : null,
+                    contract.getContractStatus(),
+                    contract.getContractStartDate().toString(),
+                    contract.getContractEndDate() != null ? contract.getContractEndDate().toString() : null,
+                    contract.getAgreedPayRatePerHour(),
+                    rating != null ? rating : 0,
+                    feedbackText,
+                    job != null && job.getSkillTags() != null ? List.of(job.getSkillTags().split(",")) : List.of(),
+                    contract.getCancellationReason()
+            );
+        }).collect(Collectors.toList());
+    }
+
+
+
+    public FreelancerProfileDataResponse getViewFreelancerProfile(String userId) {
+        if (userId == null) {
+            throw new RuntimeException("User not authenticated");
+        }
+
+        FreelancerProfile pgProfile = pgProfileRepo.findByFreelancer_FreelancerUserId(userId)
+                .orElseThrow(() -> new RuntimeException("Freelancer profile not found"));
+
+        FreelancerFeedbackService.FreelancerRatingResponse ratingData = freelancerFeedbackService.getFreelancerRating(userId);
+
+        FreelancerProfileDataResponse response = new FreelancerProfileDataResponse();
+            response.setFreelancerProfileId(userId);
+            response.setFullName(pgProfile.getFullName());
+            response.setUsername(pgProfile.getUsername());
+            response.setGender(pgProfile.getGender());
+            response.setDob(pgProfile.getDob().toString());
+            response.setEmail(pgProfile.getEmail());
+            response.setPhone(pgProfile.getPhone());
+            response.setLocation(pgProfile.getLocation());
+            response.setProfilePicture(Base64.getEncoder().encodeToString(pgProfile.getProfilePicture()));
+            response.setProfilePictureMimeType(pgProfile.getProfilePictureMimeType());
+            response.setSelfDescription(pgProfile.getSelfDescription());
+            response.setHighestEducationLevel(pgProfile.getHighestEducationLevel());
+            response.setHoursPerWeek(pgProfile.getHoursPerWeek());
+            response.setJobCategory(pgProfile.getJobCategory());
+            response.setPreferredJobTitle(pgProfile.getPreferredJobTitle());
+            response.setSkillTags(pgProfile.getSkillTags());
+            response.setLanguageProficiency(pgProfile.getLanguageProficiency());
+            response.setPreferredPayRate(pgProfile.getPreferredPayrate());
+            response.setOpenToWork(pgProfile.getOpenToWork());
+            response.setPremiumStatus(pgProfile.getPremiumStatus());
+            response.setAverageRating(ratingData.averageRating());
+            response.setTotalRatings(ratingData.totalRatings());
+
+        // MongoDB section
+
+        // 1. Resume
+        List<FreelancerResume> resumes = mongoResumeRepo.findByUserId(userId);
+        if (!resumes.isEmpty()) {
+            FreelancerResume resume = resumes.get(0);
+            FreelancerProfileDataResponse.Resume resumeDto = new FreelancerProfileDataResponse.Resume();
+            resumeDto.setFileName(resume.getFileName());
+            resumeDto.setContentType(resume.getContentType());
+            resumeDto.setBase64Data(Base64.getEncoder().encodeToString(resume.getFileData()));
+            response.setResumeFile(resumeDto);
+        }
+
+        // 2. Portfolios
+        List<FreelancerPortfolio> portfolioList = mongoPortfolioRepo.findByUserId(userId);
+        if (!portfolioList.isEmpty()) {
+            List<FreelancerProfileDataResponse.PortfolioFile> portfolioDtos = portfolioList.stream()
+                .map(file -> {
+                    FreelancerProfileDataResponse.PortfolioFile dto = new FreelancerProfileDataResponse.PortfolioFile();
+                    dto.setFileName(file.getFileName());
+                    dto.setContentType(file.getContentType());
+                    dto.setBase64Data(Base64.getEncoder().encodeToString(file.getFileData()));
+                    return dto;
+                }).collect(Collectors.toList());
+            response.setPortfolioFiles(portfolioDtos);
+        }
+
+        // 3. Certifications
+        List<FreelancerCertification> certList = mongoCertRepo.findByUserId(userId);
+        if (!certList.isEmpty()) {
+            List<FreelancerProfileDataResponse.CertificateFile> certDtos = certList.stream()
+                .map(file -> {
+                    FreelancerProfileDataResponse.CertificateFile dto = new FreelancerProfileDataResponse.CertificateFile();
+                    dto.setFileName(file.getFileName());
+                    dto.setContentType(file.getContentType());
+                    dto.setBase64Data(Base64.getEncoder().encodeToString(file.getFileData()));
+                    return dto;
+                }).collect(Collectors.toList());
+            response.setCertificationFiles(certDtos);
+        }
+
+        // 4. Job Experiences
+        List<FreelancerJobExperience> jobExpList = mongoJobExpRepo.findByUserId(userId);
+        if (!jobExpList.isEmpty()) {
+            FreelancerJobExperience jobExp = jobExpList.get(0); 
+            if (!jobExp.getJobExperiences().isEmpty()) {
+                List<FreelancerProfileDataResponse.JobExperience> jobDtos = jobExp.getJobExperiences().stream()
+                    .map(exp -> {
+                        FreelancerProfileDataResponse.JobExperience dto = new FreelancerProfileDataResponse.JobExperience();
+                        dto.setJobTitle(exp.getJobTitle());
+                        dto.setFromDate(exp.getFromDate());
+                        dto.setToDate(exp.getToDate());
+                        dto.setCompany(exp.getCompany());
+                        dto.setDescription(exp.getDescription());
+                        dto.setCurrentJob(exp.isCurrentJob());
+                        return dto;
+                    }).collect(Collectors.toList());
+                response.setJobExperiences(jobDtos);
+            }
+        }
+
+        // 5. Education
+        List<FreelancerEducation> eduList = mongoEduRepo.findByUserId(userId);
+        if (!eduList.isEmpty()) {
+            FreelancerEducation edu = eduList.get(0);
+            if (!edu.getEducationExperiences().isEmpty()) {
+                List<FreelancerProfileDataResponse.Education> eduDtos = edu.getEducationExperiences().stream()
+                    .map(item -> {
+                        FreelancerProfileDataResponse.Education dto = new FreelancerProfileDataResponse.Education();
+                        dto.setInstitute(item.getInstitute());
+                        dto.setTitle(item.getTitle());
+                        dto.setCourseName(item.getCourseName());
+                        dto.setFromDate(item.getFromDate());
+                        dto.setToDate(item.getToDate());
+                        dto.setCurrentStudying(item.isCurrentStudying());
+                        return dto;
+                    }).collect(Collectors.toList());
+                response.setEducations(eduDtos);
+            }
+        }
+
+        return response;
+    }
+
+
+    public List<JobHistoryRecordDTO> getViewFreelancerJobHistory(String userId) {
+
+        if (userId == null) throw new RuntimeException("User not authenticated");
+
+        List<Contract> contracts = contractRepository.findByFreelancerId(userId);
+
+        return contracts.stream().map(contract -> {
+
+            // Fetch JobPost
+            JobPost job = jobPostRepository.findById(Integer.parseInt(contract.getJobId()))
+                    .orElse(null);
+
+            // Fetch Employer Name
+            String employerName = employerProfileRepository
+                    .findByEmployer_EmployerUserId(contract.getEmployerId())
+                    .map(EmployerProfile::getFullName)
+                    .orElse("N/A");
+
+            // Fetch Feedback
+            var feedbackList = freelancerFeedbackRepository
+                    .findByFreelancerIdAndContractId(userId, contract.getContractId());
+            Double rating = feedbackList.isEmpty() ? null : Double.valueOf(feedbackList.get(0).getRating());
+            String feedbackText = feedbackList.isEmpty() ? null : feedbackList.get(0).getFeedback();
+
+            return new JobHistoryRecordDTO(
+                    String.valueOf(contract.getContractId()),
+                    job != null ? job.getJobTitle() : "N/A",
+                    employerName,
+                    contract.getEmployerId(),
+                    job != null ? job.getCompanyName() : null,
+                    contract.getContractStatus(),
+                    contract.getContractStartDate().toString(),
+                    contract.getContractEndDate() != null ? contract.getContractEndDate().toString() : null,
+                    contract.getAgreedPayRatePerHour(),
+                    rating != null ? rating : 0,
+                    feedbackText,
+                    job != null && job.getSkillTags() != null ? List.of(job.getSkillTags().split(",")) : List.of(),
+                    contract.getCancellationReason()
+            );
+        }).collect(Collectors.toList());
     }
 }

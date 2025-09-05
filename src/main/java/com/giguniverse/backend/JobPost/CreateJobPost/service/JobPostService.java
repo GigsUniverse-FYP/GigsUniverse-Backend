@@ -15,9 +15,13 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.giguniverse.backend.Auth.Model.Employer;
+import com.giguniverse.backend.Auth.Repository.EmployerRepository;
 import com.giguniverse.backend.Auth.Session.AuthUtil;
 import com.giguniverse.backend.JobPost.ApplyJob.Model.FavouriteJob;
 import com.giguniverse.backend.JobPost.ApplyJob.Repository.FavouriteJobRepository;
@@ -27,6 +31,9 @@ import com.giguniverse.backend.JobPost.CreateJobPost.model.JobPostUpdateRequest;
 import com.giguniverse.backend.JobPost.CreateJobPost.repository.JobPostRepository;
 import com.giguniverse.backend.Profile.Model.EmployerProfile;
 import com.giguniverse.backend.Profile.Repository.EmployerProfileRepository;
+
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 
 @Service
 public class JobPostService {
@@ -39,6 +46,12 @@ public class JobPostService {
 
     @Autowired
     FavouriteJobRepository favouriteJobRepository;
+
+    @Autowired
+    JavaMailSender mailSender;
+
+    @Autowired
+    EmployerRepository employerRepository;
 
     public List<JobPost> getJobPostsForEmployer(String employerId) {
         List<JobPost> jobs = jobPostRepository.findByEmployerIdOrderByCreatedAtDesc(employerId);
@@ -230,4 +243,46 @@ public class JobPostService {
 
         return jobs;
     }
+
+
+    public void removeJob(int jobId, String reason) {
+        JobPost job = jobPostRepository.findByJobPostId(jobId)
+                .orElseThrow(() -> new RuntimeException("Job not found with id: " + jobId));
+
+        jobPostRepository.delete(job);
+
+        Employer employer = employerRepository.findById(job.getEmployerId())
+            .orElseThrow(() -> new RuntimeException("Employer not found with id: " + job.getEmployerId()));
+
+        sendRemovalEmailToEmployer(employer.getEmail(), job, reason);
+    }
+
+
+    private void sendRemovalEmailToEmployer(String employerEmail, JobPost job, String reason) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true);
+
+            String body = "<div style='font-family:Arial,sans-serif;font-size:14px;color:#333;'>"
+                    + "<p>Dear Employer,</p>"
+                    + "<p>Your job posting <strong>" + job.getJobTitle() + " (ID: " + job.getJobPostId() + ")</strong> "
+                    + "has been <span style='color:red;'>removed</span> for the following reason:</p>"
+                    + "<strong><p style='color:red;'>" + reason + "</p></strong>"
+                    + "<br>"
+                    + "<p>If you believe this was a mistake, please contact our support team.</p>"
+                    + "<br>"
+                    + "<p>Regards,<br>GigsUniverse Team</p>"
+                    + "</div>";
+
+            helper.setFrom("admin@gigsuniverse.studio");
+            helper.setTo(employerEmail);
+            helper.setSubject("Job Posting Removed - GigsUniverse");
+            helper.setText(body, true);
+
+            mailSender.send(message);
+        } catch (MessagingException e) {
+            e.printStackTrace();
+        }
+    }
+
 }
