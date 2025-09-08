@@ -26,6 +26,8 @@ public interface EmployerRepository extends JpaRepository<Employer, String> {
 
     List<Employer> findByCompletedOnboardingTrue();
 
+    Optional<Employer> findByEmployerUserIdAndAccountBannedStatusTrue(String employerUserId);
+
     @Query("SELECT f.completedOnboarding FROM Employer f WHERE f.employerUserId = :employerUserId")
     Optional<Boolean> isOnboarded(@Param("employerUserId") String employerUserId);
 

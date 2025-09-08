@@ -3,12 +3,14 @@ package com.giguniverse.backend.Dashboard.Freelancer;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.giguniverse.backend.Auth.Session.AuthUtil;
+import com.giguniverse.backend.Dashboard.Freelancer.DTO.BannedInfoDTO;
 import com.giguniverse.backend.Dashboard.Freelancer.DTO.FreelancerDashboardDTO;
 import com.giguniverse.backend.Dashboard.Freelancer.DTO.FreelancerEarningsDTO;
 import com.giguniverse.backend.Dashboard.Freelancer.DTO.RecentEarningDTO;
@@ -54,5 +56,13 @@ public class FreelancerDashboardController {
     @GetMapping("/upcoming-deadlines")
     public ResponseEntity<List<TaskDeadlineDTO>> getUpcomingDeadlines() {
         return ResponseEntity.ok(dashboardService.getUpcomingDeadlines());
+    }
+
+    @GetMapping("/banned-info")
+    public ResponseEntity<BannedInfoDTO> getBannedInfo() {
+   return dashboardService.getBannedInfo()
+        .map(ResponseEntity::ok)
+        .orElseGet(() -> ResponseEntity.status(HttpStatus.NO_CONTENT)
+            .body(new BannedInfoDTO("Account is not banned", null, 0)));
     }
 }

@@ -3,7 +3,9 @@ package com.giguniverse.backend.Dashboard.Freelancer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.giguniverse.backend.Auth.Repository.FreelancerRepository;
 import com.giguniverse.backend.Auth.Session.AuthUtil;
+import com.giguniverse.backend.Dashboard.Freelancer.DTO.BannedInfoDTO;
 import com.giguniverse.backend.Dashboard.Freelancer.DTO.FreelancerDashboardDTO;
 import com.giguniverse.backend.Dashboard.Freelancer.DTO.FreelancerEarningsDTO;
 import com.giguniverse.backend.Dashboard.Freelancer.DTO.MonthlyEarningsDTO;
@@ -26,8 +28,10 @@ import com.giguniverse.backend.Task.Repository.TransferEventRepository;
 import lombok.RequiredArgsConstructor;
 
 import java.text.SimpleDateFormat;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -38,6 +42,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -56,6 +61,8 @@ public class FreelancerDashboardService {
     private FreelancerFeedbackRepository freelancerFeedbackRepo;
     @Autowired
     private EmployerProfileRepository employerProfileRepo;
+    @Autowired
+    private FreelancerRepository freelancerRepository;
 
     public FreelancerDashboardDTO getDashboard() {
         String freelancerId = com.giguniverse.backend.Auth.Session.AuthUtil.getUserId();
@@ -309,6 +316,19 @@ public class FreelancerDashboardService {
                                 .build();
                 })
                 .collect(Collectors.toList());
+        }
+
+        public Optional<BannedInfoDTO> getBannedInfo() {
+                String userId = AuthUtil.getUserId();
+
+                return freelancerRepository.findByFreelancerUserIdAndAccountBannedStatusTrue(userId)
+                .map(f -> {
+                        long daysRemaining = 0;
+                        if (f.getUnbanDate() != null) {
+                        daysRemaining = Duration.between(LocalDateTime.now(), f.getUnbanDate()).toDays();
+                        }
+                        return new BannedInfoDTO(f.getBannedReason(), f.getUnbanDate(), daysRemaining);
+                });
         }
 
 }

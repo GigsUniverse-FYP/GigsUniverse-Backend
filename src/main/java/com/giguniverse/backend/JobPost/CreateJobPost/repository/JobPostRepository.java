@@ -25,11 +25,15 @@ public interface JobPostRepository extends JpaRepository<JobPost, Integer> {
 
     List<JobPost> findByJobStatusNot(String status);
 
+    List<JobPost> findByJobStatus(String jobStatus);
+
     List<JobPost> findByJobStatusAndJobExpirationDateBefore(String status, Date currentDate);
 
     List<JobPost> findByJobStatusNot(String status, Sort sort);
 
     Optional<JobPost> findByJobPostId(int jobPostId);
+
+    List<JobPost> findByEmployerIdAndJobStatus(String employerId, String jobStatus);
 
     @Query("SELECT COUNT(j) FROM JobPost j WHERE j.employerId = :employerId AND j.createdAt BETWEEN :start AND :end")
     int countByEmployerIdAndCreatedAtBetween(

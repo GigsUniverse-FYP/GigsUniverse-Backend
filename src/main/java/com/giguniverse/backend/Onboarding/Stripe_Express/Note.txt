@@ -5,11 +5,11 @@ Server-side language
 cURL
 
 curl -X DELETE https://api.stripe.com/v1/accounts/acct_1ReDTH2cyXNdB9wk \
-  -u "sk_test_51ReDCGGfJXqxzjmmVyNfAwqjuEWfhOWac3809TIhijaGRRmY3VObpc457CKYmNheHugnedIaACIY0Od25sak0FA200ilyM0vUH:"
+  -u "sk_test_[api_key]"
 
 window cURL
 
-curl -X DELETE https://api.stripe.com/v1/accounts/acct_1Rurj3K7GQqtSV9u -u sk_test_51ReDCGGfJXqxzjmmVyNfAwqjuEWfhOWac3809TIhijaGRRmY3VObpc457CKYmNheHugnedIaACIY0Od25sak0FA200ilyM0vUH:
+curl -X DELETE https://api.stripe.com/v1/accounts/acct_1Rurj3K7GQqtSV9u -u sk_test_[api_key]
 
 Response
 {
@@ -24,6 +24,13 @@ stripe accounts retrieve
 
 stripe accounts update acct_1Rv6fsGhr2cclAx5 -d "metadata[foo]=bar"
 
-stripe accounts update acct_1Rv6fsGhr2cclAx5 -d "metadata[foo]=bar" --api-key sk_test_51ReDCGGfJXqxzjmmVyNfAwqjuEWfhOWac3809TIhijaGRRmY3VObpc457CKYmNheHugnedIaACIY0Od25sak0FA200ilyM0vUH
+stripe accounts update acct_1Rv6fsGhr2cclAx5 -d "metadata[foo]=bar" --api-key [api_key]
 
 stripe accounts update acct_1Rv6fsGhr2cclAx5 -d "metadata[last_update]=$(date +%s)"
+
+
+SSN last 4 → 0000
+
+Date of Birth → Any valid date (e.g., 01/01/1990)
+
+test acc -> 4242 4242 4242 4242

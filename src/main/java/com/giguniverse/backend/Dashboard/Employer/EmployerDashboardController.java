@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -13,6 +14,7 @@ import com.giguniverse.backend.Auth.Session.AuthUtil;
 import com.giguniverse.backend.Dashboard.Employer.DTO.EmployerDashboardDTO;
 import com.giguniverse.backend.Dashboard.Employer.DTO.EmployerPayoutDTO;
 import com.giguniverse.backend.Dashboard.Employer.DTO.EmployerPendingTaskDTO;
+import com.giguniverse.backend.Dashboard.Employer.DTO.BannedInfoDTO;
 
 @RestController
 @RequestMapping("/api/dashboard/employer")
@@ -44,6 +46,14 @@ public class EmployerDashboardController {
     public Map<String, Long> getContractStatusCount() {
         String employerId = AuthUtil.getUserId();
         return dashboardService.getContractStatusCount(employerId);
+    }
+
+    @GetMapping("/banned-info")
+    public ResponseEntity<BannedInfoDTO> getBannedInfo() {
+   return dashboardService.getBannedInfo()
+        .map(ResponseEntity::ok)
+        .orElseGet(() -> ResponseEntity.status(HttpStatus.NO_CONTENT)
+            .body(new BannedInfoDTO("Account is not banned", null, 0)));
     }
 
 }

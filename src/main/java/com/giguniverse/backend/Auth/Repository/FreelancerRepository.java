@@ -21,6 +21,7 @@ public interface FreelancerRepository extends JpaRepository<Freelancer, String> 
     Optional<Freelancer> findByStripeAccountId(String stripeAccountId);
     long count();
     List<Freelancer> findByRegistrationDateBetween(LocalDateTime start, LocalDateTime end);
+    Optional<Freelancer> findByFreelancerUserIdAndAccountBannedStatusTrue(String freelancerUserId);
 
     @Query("SELECT f.completedOnboarding FROM Freelancer f WHERE f.freelancerUserId = :freelancerUserId")
     Optional<Boolean> isOnboarded(@Param("freelancerUserId") String freelancerUserId);
@@ -43,4 +44,6 @@ public interface FreelancerRepository extends JpaRepository<Freelancer, String> 
     @Modifying
     @Query("DELETE FROM Freelancer f WHERE f.emailConfirmed = false AND f.registrationDate <= :expiryTime")
     void deleteUnconfirmedAccountsOlderThan(@Param("expiryTime") LocalDateTime expiryTime);
+
+
 }

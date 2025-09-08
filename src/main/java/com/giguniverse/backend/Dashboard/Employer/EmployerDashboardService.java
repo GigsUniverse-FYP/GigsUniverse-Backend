@@ -1,10 +1,12 @@
 package com.giguniverse.backend.Dashboard.Employer;
 
+import com.giguniverse.backend.Auth.Repository.EmployerRepository;
 import com.giguniverse.backend.Auth.Session.AuthUtil;
 import com.giguniverse.backend.Dashboard.Employer.DTO.EmployerDashboardDTO;
 import com.giguniverse.backend.Dashboard.Employer.DTO.EmployerPayoutDTO;
 import com.giguniverse.backend.Dashboard.Employer.DTO.EmployerPendingTaskDTO;
 import com.giguniverse.backend.Dashboard.Employer.DTO.MonthlyPayoutDTO;
+import com.giguniverse.backend.Dashboard.Employer.DTO.BannedInfoDTO;
 import com.giguniverse.backend.JobPost.ContractHandling.Model.Contract;
 import com.giguniverse.backend.JobPost.ContractHandling.Repository.ContractRepository;
 import com.giguniverse.backend.Profile.Model.FreelancerProfile;
@@ -25,6 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -41,6 +44,9 @@ public class EmployerDashboardService {
 
     @Autowired
     private FreelancerProfileRepository freelancerProfileRepository;
+
+    @Autowired
+    private EmployerRepository employerRepository;
 
     public EmployerDashboardDTO getDashboardStats() {
         String employerId = AuthUtil.getUserId();
@@ -204,4 +210,16 @@ public class EmployerDashboardService {
         }
         return statusCount;
     }
+
+        public Optional<BannedInfoDTO> getBannedInfo() {
+            String userId = AuthUtil.getUserId();
+            return employerRepository.findByEmployerUserIdAndAccountBannedStatusTrue(userId)
+            .map(f -> {
+                    long daysRemaining = 0;
+                    if (f.getUnbanDate() != null) {
+                    daysRemaining = Duration.between(LocalDateTime.now(), f.getUnbanDate()).toDays();
+                    }
+                    return new BannedInfoDTO(f.getBannedReason(), f.getUnbanDate(), daysRemaining);
+            });
+        }
 }
