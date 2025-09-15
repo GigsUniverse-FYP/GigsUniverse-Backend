@@ -25,6 +25,7 @@ import com.giguniverse.backend.Auth.Repository.EmployerRepository;
 import com.giguniverse.backend.Auth.Session.AuthUtil;
 import com.giguniverse.backend.JobPost.ApplyJob.Model.FavouriteJob;
 import com.giguniverse.backend.JobPost.ApplyJob.Repository.FavouriteJobRepository;
+import com.giguniverse.backend.JobPost.ApplyJob.Repository.JobApplicationRepository;
 import com.giguniverse.backend.JobPost.CreateJobPost.model.JobPost;
 import com.giguniverse.backend.JobPost.CreateJobPost.model.JobPostRequestDTO;
 import com.giguniverse.backend.JobPost.CreateJobPost.model.JobPostUpdateRequest;
@@ -53,8 +54,28 @@ public class JobPostService {
     @Autowired
     EmployerRepository employerRepository;
 
+    @Autowired
+    JobApplicationRepository jobApplicationRepository;
+
     public List<JobPost> getJobPostsForEmployer(String employerId) {
         List<JobPost> jobs = jobPostRepository.findByEmployerIdOrderByCreatedAtDesc(employerId);
+
+        List<String> jobIds = jobs.stream()
+                .map(job -> String.valueOf(job.getJobPostId()))
+                .toList();
+
+        List<Object[]> counts = jobApplicationRepository.countApplicationsByJobIds(jobIds);
+
+        Map<String, Long> countMap = counts.stream()
+                .collect(Collectors.toMap(
+                        row -> (String) row[0],   
+                        row -> (Long) row[1]    
+                ));
+
+        for (JobPost job : jobs) {
+            job.setApplicationsCount(countMap.getOrDefault(String.valueOf(job.getJobPostId()), 0L));
+        }
+
         return jobs;
     }
 

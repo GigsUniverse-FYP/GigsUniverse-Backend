@@ -26,10 +26,10 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
         List<String> authHeaders = accessor.getNativeHeader("Authorization");
         if (authHeaders != null && !authHeaders.isEmpty()) {
             String bearerToken = authHeaders.get(0).replace("Bearer ", "").trim();
-            System.out.println("🔐 Received WebSocket Authorization token: " + bearerToken);
+            System.out.println("Received WebSocket Authorization token: " + bearerToken);
             try {
                 String userEmail = jwtUtil.getEmailFromToken(bearerToken); 
-                System.out.println("✅ Parsed email from token: " + userEmail);
+                System.out.println("Parsed email from token: " + userEmail);
 
                 accessor.setUser(new Principal() {
                     @Override
@@ -37,7 +37,7 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
                         return userEmail;
                     }
                 });
-                System.out.println("✅ WebSocket connected with principal: " + accessor.getUser().getName());
+                System.out.println("WebSocket connected with principal: " + accessor.getUser().getName());
 
             } catch (Exception e) {
                 System.out.println("JWT parse failed: " + e.getMessage());
