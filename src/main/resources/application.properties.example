@@ -1,0 +1,102 @@
+# Application Info
+spring.application.name=gigsuniverse-backend
+
+# Frontend URL (adjust for prod/local)
+frontend.url=${FRONTEND_URL:https://gigsuniverse.studio}
+engine.url=${ENGINE_URL:https://engine.gigsuniverse.studio}
+
+# File upload size
+spring.servlet.multipart.max-file-size=10MB
+spring.servlet.multipart.max-request-size=125MB
+
+# Database Configuration 
+# PostgreSQL
+spring.datasource.url=${POSTGRES_URL:jdbc:postgresql://localhost:5432/gigsuniverse}
+spring.datasource.username=${POSTGRES_USER:postgres}
+spring.datasource.password=${POSTGRES_PASSWORD:root}
+
+# MongoDB
+spring.data.mongodb.uri=${MONGO_URI:mongodb://localhost:27017/gigsuniverse}
+
+# JPA (Hibernate)
+spring.jpa.hibernate.ddl-auto=${JPA_HIBERNATE_DDL:update}
+spring.jpa.show-sql=${JPA_SHOW_SQL:true}
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+
+
+# SMTP (Email)
+spring.mail.host=${SMTP_HOST:smtp.zoho.com}
+spring.mail.port=${SMTP_PORT:587}
+spring.mail.username=${SMTP_USER:your_email@gigsuniverse.studio}
+spring.mail.password=${SMTP_PASS:your_password}
+spring.mail.protocol=smtp
+spring.mail.properties.mail.smtp.auth=true
+spring.mail.properties.mail.smtp.starttls.enable=true
+spring.mail.properties.mail.smtp.starttls.required=true
+
+# Google OAuth2 
+spring.security.oauth2.client.registration.google-freelancer.client-id=${GOOGLE_FREELANCER_CLIENT_ID}
+spring.security.oauth2.client.registration.google-freelancer.client-secret=${GOOGLE_FREELANCER_CLIENT_SECRET}
+spring.security.oauth2.client.registration.google-freelancer.scope=openid,profile,email
+spring.security.oauth2.client.registration.google-freelancer.redirect-uri={baseUrl}/login/oauth2/code/google-freelancer
+
+spring.security.oauth2.client.registration.google-freelancer-login.client-id=${GOOGLE_FREELANCER_LOGIN_CLIENT_ID}
+spring.security.oauth2.client.registration.google-freelancer-login.client-secret=${GOOGLE_FREELANCER_LOGIN_CLIENT_SECRET}
+spring.security.oauth2.client.registration.google-freelancer-login.scope=openid,profile,email
+spring.security.oauth2.client.registration.google-freelancer-login.redirect-uri={baseUrl}/login/oauth2/code/google-freelancer-login
+
+spring.security.oauth2.client.registration.google-employer.client-id=${GOOGLE_EMPLOYER_CLIENT_ID}
+spring.security.oauth2.client.registration.google-employer.client-secret=${GOOGLE_EMPLOYER_CLIENT_SECRET}
+spring.security.oauth2.client.registration.google-employer.scope=openid,profile,email
+spring.security.oauth2.client.registration.google-employer.redirect-uri={baseUrl}/login/oauth2/code/google-employer
+
+spring.security.oauth2.client.registration.google-employer-login.client-id=${GOOGLE_EMPLOYER_LOGIN_CLIENT_ID}
+spring.security.oauth2.client.registration.google-employer-login.client-secret=${GOOGLE_EMPLOYER_LOGIN_CLIENT_SECRET}
+spring.security.oauth2.client.registration.google-employer-login.scope=openid,profile,email
+spring.security.oauth2.client.registration.google-employer-login.redirect-uri={baseUrl}/login/oauth2/code/google-employer-login
+
+spring.security.oauth2.client.provider.google.authorization-uri=https://accounts.google.com/o/oauth2/v2/auth
+spring.security.oauth2.client.provider.google.token-uri=https://oauth2.googleapis.com/token
+spring.security.oauth2.client.provider.google.user-info-uri=https://www.googleapis.com/oauth2/v3/userinfo
+spring.security.oauth2.client.provider.google.user-name-attribute=sub
+
+
+
+# Session Security
+server.servlet.session.timeout=30m
+server.servlet.session.cookie.http-only=true
+server.servlet.session.cookie.secure=true
+server.servlet.session.cookie.same-site=none  
+
+
+# JWT Setup
+jwt.secret=${JWT_SECRET:change_me}
+jwt.expiration=${JWT_EXPIRATION:86400000}
+
+
+
+# Sumsub (Identity Verification)
+sumsub.token=${SUMSUB_TOKEN}
+sumsub.secretkey=${SUMSUB_SECRETKEY}
+
+
+
+# Stripe
+stripe.publishable.key=${STRIPE_PUBLISHABLE_KEY}
+stripe.secret.key=${STRIPE_SECRET_KEY}
+
+# Webhooks
+stripe.webhook.express.secret=${STRIPE_WEBHOOK_EXPRESS_SECRET}
+stripe.webhook.subscribe.secret=${STRIPE_WEBHOOK_SUBSCRIBE_SECRET}
+stripe.webhook.topup.secret=${STRIPE_WEBHOOK_TOPUP_SECRET}
+stripe.webhook.pay.express.secret=${STRIPE_WEBHOOK_PAY_EXPRESS_SECRET}
+
+# Subscription IDs
+stripe.freelancer.subscription.id=${STRIPE_FREELANCER_SUBSCRIPTION_ID}
+stripe.employer.subscription.id=${STRIPE_EMPLOYER_SUBSCRIPTION_ID}
+
+# Logging & Debug
+logging.level.org.springframework.security=DEBUG
+logging.level.org.springframework.web=DEBUG
+server.error.include-message=always
+server.error.include-binding-errors=always
