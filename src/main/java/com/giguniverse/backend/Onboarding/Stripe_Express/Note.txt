@@ -9,7 +9,8 @@ curl -X DELETE https://api.stripe.com/v1/accounts/acct_1ReDTH2cyXNdB9wk \
 
 window cURL
 
-curl -X DELETE https://api.stripe.com/v1/accounts/acct_1Rurj3K7GQqtSV9u -u sk_test_[api_key]
+curl -X DELETE https://api.stripe.com/v1/accounts/acct_1S4yKR2cRyfRH1qB -u sk_test_51ReDCGGfJXqxzjmmVyNfAwqjuEWfhOWac3809TIhijaGRRmY3VObpc457CKYmNheHugnedIaACIY0Od25sak0FA200ilyM0vUH
+
 
 Response
 {

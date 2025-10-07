@@ -22,6 +22,7 @@ public class AdminProfileFormData {
     private List<LanguageProficiency> languageProficiency;
 
     @Data
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class LanguageProficiency {
         private String language;
         private String proficiency;

@@ -2,6 +2,7 @@ package com.giguniverse.backend.Transaction.Model;
 
 import java.time.Instant;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -26,6 +27,7 @@ public class Transaction {
 
     private String employerUserId; // who top up
 
+    @Column(name = "stripe_payment_intent_id")
     private String stripePaymentIntentId; // stripe connection id
 
     private String stripeCheckoutSessionId; // stripe checkout session id
