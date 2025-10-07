@@ -380,7 +380,9 @@ public class FreelancerProfileService {
 
         List<Contract> contracts = contractRepository.findByFreelancerId(freelancerId);
 
-        return contracts.stream().map(contract -> {
+        return contracts.stream()
+        .filter(contract -> !"rejected".equalsIgnoreCase(contract.getContractStatus()))
+        .map(contract -> {
 
             // Fetch JobPost
             JobPost job = jobPostRepository.findById(Integer.parseInt(contract.getJobId()))
@@ -543,7 +545,9 @@ public class FreelancerProfileService {
 
         List<Contract> contracts = contractRepository.findByFreelancerId(userId);
 
-        return contracts.stream().map(contract -> {
+        return contracts.stream()
+        .filter(contract -> !"rejected".equalsIgnoreCase(contract.getContractStatus()))
+        .map(contract -> {
 
             // Fetch JobPost
             JobPost job = jobPostRepository.findById(Integer.parseInt(contract.getJobId()))
