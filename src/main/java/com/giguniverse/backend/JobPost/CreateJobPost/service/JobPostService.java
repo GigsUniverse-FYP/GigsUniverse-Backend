@@ -138,7 +138,7 @@ public class JobPostService {
         jobPost.setJobTitle(dto.getJobTitle());
         jobPost.setJobDescription(dto.getJobDescription());
         jobPost.setJobScope(dto.getJobScope());
-        jobPost.setIsPremiumJob(isPremium);
+        jobPost.setIsPremiumJob(isPremium && dto.getIsPremiumJob());
         jobPost.setSkillTags(String.join(",", dto.getSkillTags()));
         jobPost.setJobField(dto.getJobField());
         jobPost.setJobCategory(String.join(",", dto.getJobCategory()));
